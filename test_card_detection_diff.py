@@ -16,24 +16,59 @@ from tarotvision.vision.diff import DiffDetector
 from tarotvision.vision.refinery import CardRefinery
 
 def find_active_camera_index() -> int:
-    """Szybko skanuje urządzenia DirectShow przy użyciu pygrabber."""
-    print("Skanowanie kamer...")
+    """
+    Skanuje urządzenia wideo w poszukiwaniu działającej kamery fizycznej.
+    Używa pygrabber (po nazwie), a w przypadku braku biblioteki lub braku dopasowań
+    skanuje porty wideo w poszukiwaniu kamery zwracającej nie-czarny obraz.
+    """
+    print("Skanowanie w poszukiwaniu aktywnej kamery...")
+    
+    # 1. Próba wykrycia po nazwach urządzeń (pygrabber)
     try:
         from pygrabber.dshow_graph import FilterGraph
         graph = FilterGraph()
         devices = graph.get_input_devices()
         for index, name in enumerate(devices):
             if "NVIDIA Broadcast" in name or "AnkerWork" in name:
-                print(f"-> Znaleziono dedykowaną kamerę '{name}' na indeksie {index}.")
-                return index
+                # Sprawdzamy czy ta kamera nie zwraca czarnego obrazu
+                cap = cv2.VideoCapture(index, cv2.CAP_DSHOW)
+                if cap.isOpened():
+                    success, frame = cap.read()
+                    if success and frame is not None and np.mean(frame) > 5.0:
+                        cap.release()
+                        print(f"-> Dopasowanie nazwy: '{name}' na indeksie {index} (obraz aktywny).")
+                        return index
+                    cap.release()
+                    
         for index, name in enumerate(devices):
             if "NDI" not in name and "OBS" not in name:
-                print(f"-> Wybrano alternatywną kamerę '{name}' na indeksie {index}.")
-                return index
-        if devices:
-            return 0
+                cap = cv2.VideoCapture(index, cv2.CAP_DSHOW)
+                if cap.isOpened():
+                    success, frame = cap.read()
+                    if success and frame is not None and np.mean(frame) > 5.0:
+                        cap.release()
+                        print(f"-> Dopasowanie alternatywne: '{name}' na indeksie {index} (obraz aktywny).")
+                        return index
+                    cap.release()
     except Exception as e:
-        print(f"Błąd pygrabber: {e}. Używam indeksu 0.")
+        print(f"Brak lub błąd pygrabber ({e}). Przechodzę do skanowania sprzętowego...")
+
+    # 2. Skanowanie sprzętowe portów 0-6 (sprawdzamy czy kamera żyje i nie zwraca czerni)
+    for index in range(7):
+        cap = cv2.VideoCapture(index, cv2.CAP_DSHOW)
+        if cap.isOpened():
+            # Warm-up 2 klatki na stabilizację sensora przy odpytaniu
+            cap.read()
+            success, frame = cap.read()
+            if success and frame is not None:
+                brightness = float(np.mean(frame))
+                if brightness > 5.0:
+                    cap.release()
+                    print(f"-> Wykryto aktywną kamerę sprzętową: Indeks {index} (jasność obrazu: {brightness:.2f}).")
+                    return index
+            cap.release()
+            
+    print("-> Błąd: Nie znaleziono żadnej kamery zwracającej aktywny (nie-czarny) obraz. Używam indeksu 0.")
     return 0
 
 def run_diff_detection():

@@ -1,1 +1,3 @@
 opencv-python
+numpy
+pygrabber; sys_platform == "win32"

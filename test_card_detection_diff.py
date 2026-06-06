@@ -16,68 +16,6 @@ from tarotvision.vision.perspective import TablePerspectiveCorrector
 from tarotvision.vision.diff import DiffDetector
 from tarotvision.vision.refinery import CardRefinery
 
-def find_active_camera_index() -> int:
-    """
-    Skanuje urządzenia wideo w poszukiwaniu działającej kamery fizycznej.
-    Używa pygrabber (po nazwie), a w przypadku braku biblioteki lub braku dopasowań
-    skanuje porty wideo w poszukiwaniu kamery zwracającej nie-czarny obraz.
-    """
-    print("Skanowanie w poszukiwaniu aktywnej kamery...")
-    
-    # 1. Próba wykrycia po nazwach urządzeń (pygrabber)
-    try:
-        from pygrabber.dshow_graph import FilterGraph
-        graph = FilterGraph()
-        devices = graph.get_input_devices()
-        for index, name in enumerate(devices):
-            if "NVIDIA Broadcast" in name or "AnkerWork" in name:
-                # Sprawdzamy czy ta kamera nie zwraca czarnego obrazu
-                cap = cv2.VideoCapture(index, cv2.CAP_DSHOW)
-                if cap.isOpened():
-                    success, frame = cap.read()
-                    if success and frame is not None and np.mean(frame) > 5.0:
-                        cap.release()
-                        print(f"-> Dopasowanie nazwy: '{name}' na indeksie {index} (obraz aktywny).")
-                        return index
-                    cap.release()
-                    
-        for index, name in enumerate(devices):
-            if "NDI" not in name and "OBS" not in name:
-                cap = cv2.VideoCapture(index, cv2.CAP_DSHOW)
-                if cap.isOpened():
-                    success, frame = cap.read()
-                    if success and frame is not None and np.mean(frame) > 5.0:
-                        cap.release()
-                        print(f"-> Dopasowanie alternatywne: '{name}' na indeksie {index} (obraz aktywny).")
-                        return index
-                    cap.release()
-    except Exception as e:
-        print(f"Brak lub błąd pygrabber ({e}). Przechodzę do skanowania sprzętowego...")
-
-    # 2. Skanowanie sprzętowe portów 0-6 (sprawdzamy czy kamera żyje i nie zwraca czerni)
-    for index in range(7):
-        print(f"  Inicjalizacja portu wideo {index}...")
-        cap = cv2.VideoCapture(index, cv2.CAP_DSHOW)
-        if cap.isOpened():
-            # Warm-up 2 klatki na stabilizację sensora przy odpytaniu
-            cap.read()
-            success, frame = cap.read()
-            if success and frame is not None:
-                brightness = float(np.mean(frame))
-                print(f"    Port {index}: Połączenie OK, jasność klatki: {brightness:.2f}")
-                if brightness > 5.0:
-                    cap.release()
-                    print(f"-> Wykryto aktywną kamerę sprzętową: Indeks {index} (jasność obrazu: {brightness:.2f}).")
-                    return index
-            else:
-                print(f"    Port {index}: Błąd pobierania klatki.")
-            cap.release()
-        else:
-            print(f"    Port {index}: Nie można otworzyć.")
-            
-    print("-> Błąd: Nie znaleziono żadnej kamery zwracającej aktywny (nie-czarny) obraz. Używam indeksu 0.")
-    return 0
-
 def run_diff_detection():
     print("--- TarotVision: Test Detekcji Kart za pomocą Różnicy Snapshotów ---")
     
@@ -91,13 +29,11 @@ def run_diff_detection():
     diff_detector = DiffDetector(diff_threshold=25, min_area=10000, max_area=150000)
     refinery = CardRefinery(margin=20)
     
-    camera_index = find_active_camera_index()
-    
-    # Inicjalizacja kamery
-    print(f"Otwieranie kamery o indeksie {camera_index}...")
-    with CameraCapture(camera_index=camera_index, width=1920, height=1080) as cam:
+    # Inicjalizacja kamery (CameraCapture automatycznie wykryje sprawny port nie-czarny)
+    print("Inicjalizacja kamery...")
+    with CameraCapture(camera_index=None, width=1920, height=1080) as cam:
         if cam.cap is None or not cam.cap.isOpened():
-            print("Błąd: Nie można otworzyć kamery.")
+            print("Błąd krytyczny: Nie udało się otworzyć żadnej sprawnej kamery.")
             sys.exit(1)
             
         print("\n=== Instrukcja obsługi ===")
@@ -106,12 +42,19 @@ def run_diff_detection():
             print("-> Wciśnij SPACJĘ w oknie wideo, aby zrobić NOWY Snapshot_0.")
             print("-> Wciśnij DOWOLNY INNY KLAWISZ (np. Enter), aby pominąć i użyć zapisanego.")
         else:
-            print("-> Brak Snapshot_0. Uporządkuj stół (pusta mata) i przygotuj się do kalibracji.")
-            print("-> Wciśnij SPACJĘ w oknie wideo, aby wykonać Snapshot_0 (pusta mata).")
+            print("-> Brak Snapshot_0. Uporządkuj stół (pusta mata).")
+            print("-> Trwa automatyczny preflight... Jeśli stół będzie pusty i stabilny przez 3 sekundy,")
+            print("   system sam wykona Snapshot_0.")
+            print("-> Możesz też w każdej chwili wcisnąć SPACJĘ, aby wykonać go ręcznie.")
         print("-> Wciśnij ESC w oknie wideo, aby wyjść z programu.")
         print("==========================\n")
         
         has_snapshot_0 = snapshot_manager.has_snapshot_0()
+        
+        # Zmienne dla automatycznego preflightu
+        preflight_active = not has_snapshot_0
+        stable_start_time = None
+        preflight_duration = 3.0 # Wymagany czas bezruchu dla autokalibracji
         
         # Pętla kalibracji / oczekiwania na Snapshot_0
         while True:
@@ -119,7 +62,7 @@ def run_diff_detection():
             if not success or frame is None:
                 continue
                 
-            # Prostujemy obraz na bieżąco, aby operator widział wyprostowany stół
+            # Prostujemy obraz na bieżąco
             warped, _ = corrector.get_warped_table(frame, crop_to_markers=True)
             
             # Kopia do wyświetlania
@@ -129,9 +72,35 @@ def run_diff_detection():
                 cv2.imshow("Wyprostowany Stol (Warped)", warped)
                 cv2.putText(display_frame, "Stol wykryty poprawnie", (30, 40), 
                             cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
+                
+                # Logika automatycznego preflightu (tylko gdy stół jest wykryty)
+                if preflight_active:
+                    is_moving, _ = motion_detector.update(warped)
+                    current_time = time.time()
+                    
+                    if is_moving:
+                        # Ruch resetuje licznik stabilności
+                        stable_start_time = None
+                        cv2.putText(display_frame, "Auto-Preflight: Wykryto ruch...", (30, 120),
+                                    cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
+                    else:
+                        if stable_start_time is None:
+                            stable_start_time = current_time
+                        
+                        elapsed = current_time - stable_start_time
+                        progress = min(1.0, elapsed / preflight_duration)
+                        cv2.putText(display_frame, f"Auto-Preflight: Stabilizacja... {progress*100:.0f}%", (30, 120),
+                                    cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 165, 0), 2)
+                                    
+                        if elapsed >= preflight_duration:
+                            snapshot_manager.save_snapshot_0(warped)
+                            has_snapshot_0 = True
+                            print("-> [Auto-Preflight] ZAPISANO SNAPSHOT_0 (PUSTA MATA). Przechodzę do detekcji.")
+                            break
             else:
                 cv2.putText(display_frame, "BLAD: Nie wykryto 4 markerow ArUco!", (30, 40), 
                             cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 2)
+                stable_start_time = None # Brak stołu resetuje preflight
                             
             cv2.putText(display_frame, "SPACJA: Zapisz Snapshot_0 | ESC: Wyjdz", (30, 80), 
                         cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
@@ -147,7 +116,7 @@ def run_diff_detection():
                 if warped is not None:
                     snapshot_manager.save_snapshot_0(warped)
                     has_snapshot_0 = True
-                    print("-> ZAPISANO SNAPSHOT_0 (PUSTA MATA). Przechodzę do detekcji.")
+                    print("-> ZAPISANO SNAPSHOT_0 (PUSTA MATA) RĘCZNIE. Przechodzę do detekcji.")
                     break
                 else:
                     print("Nie można wykonać Snapshot_0 - brak widocznych 4 markerów ArUco na stole!")
@@ -156,11 +125,14 @@ def run_diff_detection():
                 print("-> Używam istniejącego Snapshot_0 z dysku.")
                 break
                 
+        # Reset detektora ruchu po preflighcie, aby zacząć od świeżego stanu
+        motion_detector.reset()
+        
         # Główna pętla detekcji
         print("\nRozpoczynam automatyczną detekcję na podstawie różnic obrazów...")
         print("Połóż kartę na stole i zabierz rękę.")
         
-        cv2.destroyWindow("Podglad Live (Kamera)") # Zamykamy surowy podgląd, operator patrzy na wyprostowany stół
+        cv2.destroyWindow("Podglad Live (Kamera)")
         
         while True:
             success, frame = cam.get_frame()
@@ -169,7 +141,6 @@ def run_diff_detection():
                 
             warped, _ = corrector.get_warped_table(frame, crop_to_markers=True)
             if warped is None:
-                # Brak markerów - informujemy i pomijamy klatkę
                 cv2.imshow("Wyprostowany Stol (Warped)", frame)
                 cv2.waitKey(1)
                 continue
@@ -226,7 +197,7 @@ def run_diff_detection():
                         with open(output_dir / "detected_cards.json", "w", encoding="utf-8") as f:
                             json.dump(cards_metadata, f, indent=2, ensure_ascii=False)
                             
-                        # Narysowanie zielonego prostokąta dopasowanej karty na obrazie wynikowym
+                        # Narysowanie zielonego prostokąta
                         box = np.intp(card_data["corners"])
                         cv2.drawContours(display_warped, [box], -1, (0, 255, 0), 3)
                         cv2.circle(display_warped, card_data["center"], 7, (0, 0, 255), -1)

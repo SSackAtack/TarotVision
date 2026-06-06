@@ -57,7 +57,7 @@ class CardRefinery:
         # Jeśli tło jest jaśniejsze niż karta (rzadkie, ale możliwe), sprawdzamy rogi
         # Zakładamy, że rogi wycinka ROI to tło stołu. Jeśli większość pikseli w rogach
         # wycinka ma wartość 255 (białe), to odwracamy maskę.
-        corner_pixels = [thresh[0, 0], thresh[0, -1], thresh[-1, 0], thresh[-1, -1]]
+        corner_pixels = [int(thresh[0, 0]), int(thresh[0, -1]), int(thresh[-1, 0]), int(thresh[-1, -1])]
         if sum(corner_pixels) > 510: # Więcej niż 2 piksele narożne są białe
             thresh = cv2.bitwise_not(thresh)
             

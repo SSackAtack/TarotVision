@@ -1,0 +1,10 @@
+.venv/
+__pycache__/
+*.pyc
+output/
+.idea/
+.vscode/
+*.png
+*.jpg
+*.json
+!requirements.txt

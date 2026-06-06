@@ -56,6 +56,7 @@ def find_active_camera_index() -> int:
 
     # 2. Skanowanie sprzętowe portów 0-6 (sprawdzamy czy kamera żyje i nie zwraca czerni)
     for index in range(7):
+        print(f"  Inicjalizacja portu wideo {index}...")
         cap = cv2.VideoCapture(index, cv2.CAP_DSHOW)
         if cap.isOpened():
             # Warm-up 2 klatki na stabilizację sensora przy odpytaniu
@@ -63,11 +64,16 @@ def find_active_camera_index() -> int:
             success, frame = cap.read()
             if success and frame is not None:
                 brightness = float(np.mean(frame))
+                print(f"    Port {index}: Połączenie OK, jasność klatki: {brightness:.2f}")
                 if brightness > 5.0:
                     cap.release()
                     print(f"-> Wykryto aktywną kamerę sprzętową: Indeks {index} (jasność obrazu: {brightness:.2f}).")
                     return index
+            else:
+                print(f"    Port {index}: Błąd pobierania klatki.")
             cap.release()
+        else:
+            print(f"    Port {index}: Nie można otworzyć.")
             
     print("-> Błąd: Nie znaleziono żadnej kamery zwracającej aktywny (nie-czarny) obraz. Używam indeksu 0.")
     return 0

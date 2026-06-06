@@ -60,7 +60,7 @@ class TablePerspectiveCorrector:
                     center_x = int(np.mean(marker_corners[:, 0]))
                     center_y = int(np.mean(marker_corners[:, 1]))
                     detected_centers[marker_id] = (center_x, center_y)
-                    logger.info(f"Wykryto marker {marker_id} ({self.required_ids[marker_id]}) w punkcie: ({center_x}, {center_y})")
+                    logger.debug(f"Wykryto marker {marker_id} ({self.required_ids[marker_id]}) w punkcie: ({center_x}, {center_y})")
 
         return detected_centers
 
@@ -116,5 +116,5 @@ class TablePerspectiveCorrector:
         matrix = cv2.getPerspectiveTransform(src_pts, dst_pts)
         warped = cv2.warpPerspective(image, matrix, (output_width, output_height))
 
-        logger.info(f"Perspektywa wyprostowana pomyślnie. Tryb przycinania: {crop_to_markers}")
+        logger.debug(f"Perspektywa wyprostowana pomyślnie. Tryb przycinania: {crop_to_markers}")
         return warped, matrix

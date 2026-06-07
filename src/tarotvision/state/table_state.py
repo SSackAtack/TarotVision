@@ -61,8 +61,8 @@ class TableState:
         
         self.table = {
             "coordinate_system": "corrected_table_image",
-            "image_width": 1920,
-            "image_height": 1080
+            "image_width": None,
+            "image_height": None
         }
         self.active_decks = []
         self.cards: list[TableCard] = []
@@ -224,8 +224,8 @@ class TableState:
                 }
                 
         # Wyliczenie współrzędnych normalizowanych
-        w_width = self.table.get("image_width", 1920)
-        w_height = self.table.get("image_height", 1080)
+        w_width = self.table.get("image_width")
+        w_height = self.table.get("image_height")
         
         center_px = position.get("center_px")
         bbox_px = position.get("bbox_px") # [x, y, w, h]
@@ -233,7 +233,7 @@ class TableState:
         center_norm = None
         bbox_norm = None
         
-        if w_width and w_height:
+        if w_width is not None and w_height is not None and w_width > 0 and w_height > 0:
             if center_px and len(center_px) == 2:
                 center_norm = [round(center_px[0] / w_width, 4), round(center_px[1] / w_height, 4)]
             if bbox_px and len(bbox_px) == 4:
@@ -243,6 +243,8 @@ class TableState:
                     round(bbox_px[2] / w_width, 4),
                     round(bbox_px[3] / w_height, 4)
                 ]
+        else:
+            logger.warning("Rozmiar stołu nie jest poprawnie ustawiony w TableState. Współrzędne znormalizowane nie zostaną wyliczone (center_norm=None, bbox_norm=None).")
                 
         pos_data = {
             "bbox_px": bbox_px or [0, 0, 0, 0],
@@ -310,6 +312,25 @@ class TableState:
             if card.card_instance_id == instance_id:
                 return card
         return None
+
+    def set_table_size(self, width: int, height: int) -> None:
+        """
+        Ustawia rozmiar wyprostowanego stołu z walidacją parametrów.
+
+        :param width: Szerokość obrazu (> 0).
+        :param height: Wysokość obrazu (> 0).
+        """
+        if width is None or height is None:
+            raise ValueError("Szerokość i wysokość stołu nie mogą być None.")
+        if not isinstance(width, int) or isinstance(width, bool) or not isinstance(height, int) or isinstance(height, bool):
+            raise TypeError("Szerokość i wysokość stołu muszą być typu int.")
+        if width <= 0 or height <= 0:
+            raise ValueError("Szerokość i wysokość stołu muszą być większe niż 0.")
+
+        self.table["image_width"] = width
+        self.table["image_height"] = height
+        logger.info(f"Ustawiono rozmiar stołu w TableState: {width}x{height}")
+
 
     def to_dict(self) -> dict:
         """Zwraca pełen słownik reprezentujący stan stołu (analogiczny do pliku JSON)."""

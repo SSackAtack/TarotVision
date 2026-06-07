@@ -27,6 +27,9 @@ class TestTableState(unittest.TestCase):
         self.assertEqual(len(state.cards), 0)
         self.assertEqual(state.session_id, "table_state")
         
+        # Ustawienie rozmiaru stołu, by normalizacja przeszła poprawnie
+        state.set_table_size(1920, 1080)
+        
         # 2. Dodanie pierwszej karty
         recognition_result_1 = {
             "recognized_deck": "gilded",

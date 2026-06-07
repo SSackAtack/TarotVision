@@ -55,10 +55,10 @@ Aby wyeliminować zakłócenia takie jak faktura stołu, cienie czy odblaski św
 
 ## Następny Krok Techniczny
  
-Moduł rozpoznawania wizualnego kart (`tarotvision.recognition`) oparty na podobieństwie całych obrazów (visual similarity) i weryfikacji obrotu o 180° został wdrożony i pomyślnie przetestowany (TV-011) na zapisanych cropach z sesji live. Działa ładowanie skanów referencyjnych (`ReferenceLoader`) i dopasowanie (`ImageMatcher`).
+Procedura Camera Preflight oraz Quality Check (TV-012) zostały w pełni wdrożone. Kamera podejmuje próbę blokady autofokusu oraz balansu bieli, wylicza 6 wskaźników jakości obrazu (jasność, kontrast, ostrość, prześwietlenie, niedoświetlenie, stabilność) i zapisuje raport `camera_profile.json`. Status jakości jest prezentowany operatorowi przed kalibracją stołu.
  
 Najbliższy problem techniczny do wdrożenia to:
-*   **TV-012:** Wdrożenie mapowania semantycznego (id skanów -> rzeczywiste nazwy kart) oraz rozszerzenie bazy referencyjnej o pełną talię.
+*   **TV-013:** Wdrożenie mapowania semantycznego (id skanów -> rzeczywiste nazwy kart) oraz rozszerzenie bazy referencyjnej o pełną talię.
 
 ---
 

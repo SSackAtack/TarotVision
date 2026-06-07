@@ -8,7 +8,13 @@ logger = logging.getLogger(__name__)
 class CameraCapture:
     """Klasa obsługująca pobieranie obrazu z kamery z automatyczną autodetekcją aktywnego urządzenia."""
 
-    def __init__(self, camera_index: int = None, width: int = None, height: int = None, api_preference: int = cv2.CAP_DSHOW):
+    def __init__(self, 
+                 camera_index: int = None, 
+                 width: int = None, 
+                 height: int = None, 
+                 api_preference: int = cv2.CAP_DSHOW,
+                 enable_preflight: bool = False,
+                 camera_settings_path: str = "config/camera_settings.json"):
         """
         Inicjalizacja modułu kamery.
 
@@ -16,12 +22,17 @@ class CameraCapture:
         :param width: Opcjonalna szerokość obrazu.
         :param height: Opcjonalna wysokość obrazu.
         :param api_preference: Preferowane API OpenCV (domyślnie cv2.CAP_DSHOW dla systemu Windows).
+        :param enable_preflight: Jeśli True, uruchamia ocenę jakości obrazu i aplikację parametrów po otwarciu.
+        :param camera_settings_path: Ścieżka do pliku konfiguracji parametrów kamery.
         """
         self.camera_index = camera_index
         self.width = width
         self.height = height
         self.api_preference = api_preference
+        self.enable_preflight = enable_preflight
+        self.camera_settings_path = camera_settings_path
         self.cap = None
+        self.preflight_data = None
 
     def _find_active_camera(self) -> int:
         """Skanuje urządzenia wideo i zwraca indeks kamery dającej nie-czarny obraz."""
@@ -58,7 +69,7 @@ class CameraCapture:
                         cap.release()
         except Exception as e:
             logger.debug(f"Brak lub błąd pygrabber podczas autodetekcji ({e}). Przechodzę do skanowania sprzętowego.")
-
+ 
         # 2. Skanowanie sprzętowe portów 0-6
         for index in range(7):
             cap = cv2.VideoCapture(index, self.api_preference)
@@ -123,7 +134,75 @@ class CameraCapture:
                 logger.warning(f"Nie udało się odczytać klatki warm-up ({i}/15).")
                 break
             
+        # Preflight kamery, jeśli włączony
+        if self.enable_preflight:
+            self.run_preflight()
+
         return True
+
+    def run_preflight(self) -> dict:
+        """
+        Uruchamia procedurę preflightu kamery:
+        1. Aplikuje blokady parametrów z konfiguracji.
+        2. Pobiera serię klatek (5 klatek) do analizy jakości.
+        3. Oblicza metryki jakości obrazu.
+        4. Zapisuje profil kamery camera_profile.json.
+        """
+        logger.info("Uruchamiam procedurę Camera Preflight...")
+        from tarotvision.camera.settings import CameraSettingsManager
+        from tarotvision.camera.preflight import CameraPreflightManager, calculate_quality_metrics
+        
+        settings_manager = CameraSettingsManager(config_path=self.camera_settings_path)
+        preflight_manager = CameraPreflightManager(config_path=self.camera_settings_path)
+        
+        # 1. Aplikowanie ustawień i readback
+        requested, readback, status = settings_manager.apply_settings(self.cap)
+        
+        # 2. Pobranie serii klatek do oceny jakości
+        frames = []
+        for _ in range(5):
+            success, frame = self.get_frame()
+            if success and frame is not None:
+                frames.append(frame)
+            time.sleep(0.05)
+            
+        if not frames:
+            logger.error("Preflight: Nie udało się pobrać żadnej klatki do analizy jakości.")
+            self.preflight_data = {
+                "quality_status": "rejected",
+                "notes": ["Brak klatek do analizy jakości"]
+            }
+            return self.preflight_data
+            
+        # 3. Obliczenie metryk i ocena statusu
+        metrics = calculate_quality_metrics(frames)
+        quality_status = preflight_manager.evaluate_quality(metrics)
+        
+        # 4. Zapis profilu
+        actual_width = self.cap.get(cv2.CAP_PROP_FRAME_WIDTH)
+        actual_height = self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
+        
+        profile_path = preflight_manager.write_camera_profile(
+            camera_index=self.camera_index,
+            resolution=[int(actual_width), int(actual_height)],
+            requested=requested,
+            readback=readback,
+            status=status,
+            metrics=metrics,
+            quality_status=quality_status
+        )
+        
+        self.preflight_data = {
+            "requested": requested,
+            "readback": readback,
+            "status": status,
+            "metrics": metrics,
+            "quality_status": quality_status,
+            "profile_path": profile_path
+        }
+        
+        logger.info(f"Preflight zakończony ze statusem jakości: {quality_status.upper()}")
+        return self.preflight_data
 
     def get_frame(self) -> tuple[bool, np.ndarray | None]:
         """

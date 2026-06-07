@@ -43,12 +43,56 @@ def run_diff_detection():
     
     # Inicjalizacja kamery (CameraCapture automatycznie wykryje sprawny port nie-czarny)
     print("Inicjalizacja kamery...")
-    with CameraCapture(camera_index=None, width=1920, height=1080) as cam:
+    with CameraCapture(camera_index=None, width=1920, height=1080, enable_preflight=True) as cam:
         if cam.cap is None or not cam.cap.isOpened():
             print("Błąd krytyczny: Nie udało się otworzyć żadnej sprawnej kamery.")
             sys.exit(1)
             
-        print("\n=== Instrukcja obsługi ===")
+        print("\n=== Raport Camera Preflight ===")
+        if cam.preflight_data:
+            metrics = cam.preflight_data["metrics"]
+            status = cam.preflight_data["status"]
+            quality = cam.preflight_data["quality_status"]
+            
+            # Funkcja pomocnicza do oceny metryk na podstawie progów
+            def eval_metric(val, min_val=None, max_val=None, is_higher_better=False):
+                if is_higher_better:
+                    if val < min_val * 0.6: return "ERROR"
+                    if val < min_val: return "WARNING"
+                    return "OK"
+                else:
+                    if max_val is not None and val > max_val * 2.5: return "ERROR"
+                    if max_val is not None and val > max_val: return "WARNING"
+                    if min_val is not None and val < min_val * 0.8: return "ERROR"
+                    if min_val is not None and val < min_val: return "WARNING"
+                    return "OK"
+            
+            b_status = eval_metric(metrics.get("brightness_mean"), 50, 190)
+            s_status = eval_metric(metrics.get("laplacian_variance"), 80, is_higher_better=True)
+            o_status = eval_metric(metrics.get("overexposed_ratio"), max_val=0.02)
+            u_status = eval_metric(metrics.get("underexposed_ratio"), max_val=0.05)
+            st_status = eval_metric(metrics.get("frame_delta_mean"), max_val=3.0)
+            
+            print(f"- brightness: {b_status} ({metrics.get('brightness_mean')} px)")
+            print(f"- sharpness: {s_status} ({metrics.get('laplacian_variance')})")
+            print(f"- overexposure: {o_status} ({metrics.get('overexposed_ratio')*100:.2f}%)")
+            print(f"- underexposure: {u_status} ({metrics.get('underexposed_ratio')*100:.2f}%)")
+            print(f"- stability: {st_status} ({metrics.get('frame_delta_mean')} px)")
+            print(f"- auto exposure lock: {status.get('auto_exposure', 'unknown')}")
+            print(f"- autofocus lock: {status.get('auto_focus', 'unknown')}")
+            print(f"- white balance lock: {status.get('auto_white_balance', 'unknown')}")
+            print(f"Jakość ogólna: {quality.upper()}")
+            
+            if quality == "rejected":
+                print("\n[OSTRZEŻENIE] Jakość obrazu jest zła! Popraw oświetlenie / ostrość / ustawienie kamery przed Snapshot_0.\n")
+            elif quality == "warning":
+                print("\n[OSTRZEŻENIE] Wykryto drobne odchylenia jakości obrazu w preflightcie.\n")
+            else:
+                print("\n[OK] Jakość obrazu w preflightcie spełnia wymagania.\n")
+        else:
+            print("Brak danych preflightu kamery.")
+            
+        print("=== Instrukcja obsługi ===")
         if snapshot_manager.has_snapshot_0():
             print("-> Wykryto zapisany Snapshot_0 (pusta mata) na dysku.")
             print("-> Wciśnij SPACJĘ w oknie wideo, aby zrobić NOWY Snapshot_0.")

@@ -7,7 +7,7 @@ TV-006
 Rolling Snapshot Comparison — korekta logiki porównywania snapshotów
 
 ## Status
-Do wykonania w kolejnej sesji.
+Zakończone.
 
 ## Cel
 Skorygowanie obecnego mechanizmu detekcji różnicowej tak, aby system nie porównywał każdej kolejnej sceny wyłącznie do pustej maty `Snapshot_0`, lecz wykrywał nową zmianę względem ostatniego zaakceptowanego stanu stołu.
@@ -366,7 +366,7 @@ TV-006 dotyczy wyłącznie pierwszego trybu, czyli `change detection`.
 
 ---
 
-## Następny krok po TV-006
+## Pierwotnie planowany następny krok po TV-006
 
 Dopiero po tej korekcie można bezpiecznie planować:
 
@@ -375,3 +375,88 @@ TV-007 — standaryzacja DetectedCard / detection_confidence
 TV-008 — crop i prostowanie pojedynczej karty
 TV-009 — rozpoznawanie konkretnej karty na podstawie cropa
 ```
+
+Po fizycznej weryfikacji TV-006 najbliższym praktycznym krokiem powinno być jednak ustabilizowanie `CardRefinery`, ponieważ rolling comparison działa, a błąd ujawnia się dopiero przy finalnym dopasowaniu ramki do drugiej karty.
+
+---
+
+## Wynik realizacji
+
+*   **Data realizacji:** 2026-06-07
+*   **Ścieżka projektu:** `E:\Antigravity\Projekty\TarotVision`
+
+Wynik:
+*   `SnapshotManager` obsługuje jawne role `snapshot_0`, `snapshot_previous` i `snapshot_current`.
+*   Zapis `Snapshot_0` ustawia jednocześnie `Snapshot_previous`.
+*   Zapis `Snapshot_current` nie aktualizuje `Snapshot_previous`.
+*   Dodano jawne zaakceptowanie stanu przez `accept_current_as_previous()`.
+*   Główna pętla `test_card_detection_diff.py` porównuje teraz `Snapshot_current - Snapshot_previous`.
+*   Po nieudanej detekcji `Snapshot_previous` nie jest aktualizowany.
+*   Auto-Preflight nie zapisuje już automatycznie pustej maty; Snapshot_0 wymaga akcji operatora.
+*   Dodano test offline sekwencji rolling comparison dla układu `empty -> one_card -> two_cards`.
+
+Weryfikacja:
+*   `python test_snapshot_manager_rolling.py`
+*   `python test_rolling_snapshot_offline.py`
+*   `python test_card_detection_offline.py`
+
+**Status:**
+Zadanie TV-006 zaakceptowane i zakończone.
+
+---
+
+## Dopisek diagnostyczny do testów fizycznych
+
+*   **Data dopisku:** 2026-06-07
+
+Na czas testów fizycznych dodano ograniczony zapis diagnostyczny prób detekcji.
+
+Zasada:
+*   Operacyjny mechanizm snapshotów nadal przechowuje tylko:
+    *   `snapshot_0.png`,
+    *   `snapshot_previous.png`,
+    *   `snapshot_current.png`.
+*   Dodatkowa diagnostyka zapisuje osobne rekordy prób w:
+    *   `output/sessions/current/detections/detection_###/`.
+*   Każdy rekord zawiera:
+    *   `previous.png` — referencja użyta do porównania,
+    *   `current.png` — aktualny kandydat po stabilizacji,
+    *   `mask.png` — maska różnicowa,
+    *   `result.png` — obraz diagnostyczny z ramką, jeśli powstał,
+    *   `metadata.json` — status próby i dane wykrytej karty.
+*   `output/sessions/current/session.log` zawiera krótką linię tekstową dla każdej próby.
+*   Retencja diagnostyczna jest ograniczona do ostatnich 20 prób, żeby nie zbierać niepotrzebnej historii bez końca.
+
+---
+
+## Wynik fizycznej weryfikacji
+
+*   **Data testu:** 2026-06-07
+*   **Kamera:** AnkerWork C310 Webcam, indeks DirectShow `4`
+*   **Rozdzielczość:** 1920x1080
+*   **Tryb testu:** `python test_card_detection_diff.py`
+
+Przebieg:
+*   Operator ręcznie zatwierdził pustą matę jako `Snapshot_0`.
+*   `detection_001` porównał pusty stół z pierwszą kartą.
+*   `detection_001/previous.png` zawiera pusty stół.
+*   `detection_001/current.png` zawiera stół z pierwszą kartą.
+*   `detection_001/mask.png` zawiera pojedynczy obszar odpowiadający pierwszej karcie.
+*   Po sukcesie system wykonał `accept_current_as_previous()`.
+*   `detection_002` porównał stół z pierwszą kartą ze stołem z dwiema kartami.
+*   `detection_002/previous.png` zawiera już pierwszą zaakceptowaną kartę.
+*   `detection_002/current.png` zawiera pierwszą i drugą kartę.
+*   `detection_002/mask.png` zawiera pojedynczy obszar odpowiadający drugiej karcie.
+
+Wniosek:
+*   Rolling snapshot comparison działa poprawnie.
+*   Druga detekcja nie porównuje aktualnej sceny do pustego stołu, tylko do ostatniego zaakceptowanego stanu.
+*   Mechanizm `Snapshot_previous` jest aktualizowany dopiero po zaakceptowanej detekcji.
+*   Dodatkowa próba `detection_003` miała status `no_roi`, co jest akceptowalne, ponieważ zawierała tylko drobne zmiany przy krawędziach/markerach, bez nowej karty.
+
+Wykryty problem poza zakresem TV-006:
+*   Przy `detection_002` maska różnicowa obejmuje właściwie drugą kartę, ale `CardRefinery` dopasował finalną zieloną ramkę tylko do górnej części karty.
+*   Problem nie leży już w rolling comparison, tylko w sposobie rafinacji obrysu karty wewnątrz ROI.
+
+Rekomendowane następne zadanie:
+*   `TV-007-card-refinery-stabilization.md` — ustabilizować pełne dopasowanie ramki karty na podstawie ROI/maski różnicowej.

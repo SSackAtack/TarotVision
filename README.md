@@ -6,9 +6,9 @@ Projekt jest rozwijany modularnie metodą VibeCodingu przy użyciu agentów AI.
 
 ---
 
-## 🚀 Status Projektu: MVP 1 Ukończone
+## 🚀 Status Projektu: MVP 1 Zweryfikowane Fizycznie
 
-Zakończyliśmy pierwszy kluczowy etap techniczny (MVP 1) – stabilne pobieranie obrazu, korekcję perspektywy stołu oraz geometryczną detekcję położenia kart.
+Zakończyliśmy pierwszy kluczowy etap techniczny (MVP 1): stabilne pobieranie obrazu, korekcję perspektywy stołu, detekcję różnicową nowych kart oraz zapis danych diagnostycznych. Test fizyczny z dnia 2026-06-07 potwierdził, że system potrafi wykrywać kolejne dokładane karty względem ostatniego zaakceptowanego stanu stołu.
 
 ### 📸 Strategia Detekcji: Porównywanie Snapshotów (Image Differencing)
 
@@ -17,7 +17,7 @@ Aby wyeliminować zakłócenia takie jak faktura stołu, cienie czy odblaski św
 1. **Kalibracja (Snapshot_0):** Na początku sesji operator wykonuje referencyjne zdjęcie pustego stołu (matrycy).
 2. **Monitorowanie Ruchu:** System w czasie rzeczywistym analizuje klatki wideo. Wykrywa moment położenia karty (ruch dłoni).
 3. **Stabilizacja:** Gdy ruch nad stołem ustaje na co najmniej 0.5s, wykonywany jest nowy snapshot (`Snapshot_current`).
-4. **Odejmowanie Tła:** System oblicza różnicę bezwzględną między aktualnym stanem a pustym stołem, izolując nowo położony obiekt (ROI karty).
+4. **Rolling Snapshot Comparison:** System oblicza różnicę bezwzględną między aktualnym stanem stołu a ostatnim zaakceptowanym stanem (`Snapshot_previous`), izolując tylko nowo położony obiekt.
 5. **Precyzyjna Rafinacja:** Wewnątrz wyznaczonego ROI algorytm Otsu precyzyjnie wyznacza krawędzie karty, jej środek oraz kąt obrotu.
 
 ---
@@ -32,7 +32,8 @@ Aby wyeliminować zakłócenia takie jak faktura stołu, cienie czy odblaski św
     *   `diff.py`: Klasa `DiffDetector` wykrywająca ROI karty na podstawie maski różnicowej.
     *   `refinery.py`: Klasa `CardRefinery` dopasowująca precyzyjnie ramkę i kąt karty wewnątrz ROI.
 *   **Zarządzanie Snapshotami (`src/tarotvision/storage/`):**
-    *   `snapshots.py`: Klasa `SnapshotManager` zoptymalizowana pod kątem pamięci dyskowej (przechowuje historię w RAM, na dysku tylko Snapshot_0 i stan aktualny).
+    *   `snapshots.py`: Klasa `SnapshotManager` zoptymalizowana pod kątem pamięci dyskowej. Operacyjnie przechowuje `Snapshot_0`, `Snapshot_previous` i `Snapshot_current`.
+    *   `diagnostics.py`: Ograniczony recorder diagnostyczny do testów fizycznych. Zapisuje ostatnie próby detekcji w `output/sessions/current/detections/` z limitem retencji.
 
 ---
 
@@ -48,6 +49,13 @@ Aby wyeliminować zakłócenia takie jak faktura stołu, cienie czy odblaski św
    ```
 3. Wciśnij **SPACJĘ** w oknie podglądu, aby zapisać referencyjny obraz pustego stołu (`Snapshot_0`).
 4. Połóż kartę na stole i cofnij rękę – system automatycznie obrysuje kartę i zapisze metadane w `output/processed/detected_cards.json`.
+5. Dla testów fizycznych sprawdź katalog `output/sessions/current/detections/`, gdzie każda próba zawiera `previous.png`, `current.png`, `mask.png`, `result.png` i `metadata.json`.
+
+---
+
+## Następny Krok Techniczny
+
+Rolling comparison działa poprawnie. Najbliższy problem techniczny dotyczy `CardRefinery`: przy drugiej karcie test fizyczny pokazał poprawną maskę różnicową, ale finalna zielona ramka objęła tylko górną część karty. Następne zadanie powinno ustabilizować dopasowanie pełnego obrysu karty w ROI.
 
 ---
 

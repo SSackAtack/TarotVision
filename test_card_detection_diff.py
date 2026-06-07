@@ -24,6 +24,7 @@ from tarotvision.recognition.index_loader import ReferenceIndexLoader
 from tarotvision.recognition.indexed_matcher import IndexedImageMatcher
 from tarotvision.recognition.card_mapping import enrich_recognition_with_card_mapping
 from tarotvision.state.table_state import TableState
+from tarotvision.vision.removal import CardRemovalDetector
 
 def run_diff_detection():
     print("--- TarotVision: Test Detekcji Kart za pomocą Różnicy Snapshotów ---")
@@ -50,6 +51,8 @@ def run_diff_detection():
     # Inicjalizacja TableState
     table_state = TableState(session_dir="output/sessions/current")
     table_state.load()
+    
+    removal_detector = CardRemovalDetector()
     
     # Inicjalizacja matchera kart
     deck_id = "gilded"
@@ -261,6 +264,80 @@ def run_diff_detection():
                 cv2.imwrite(str(output_dir / "debug_diff_mask.png"), debug_mask)
                 
                 if roi_rect is not None:
+                    # Sprawdzenie usunięcia karty przed próbą dopasowania nowej karty
+                    snapshot_0 = snapshot_manager.get_snapshot_0()
+                    if snapshot_0 is not None:
+                        removal_res = removal_detector.detect_card_removal(
+                            snapshot_0=snapshot_0,
+                            snapshot_previous=snapshot_previous,
+                            snapshot_current=snapshot_current,
+                            changed_roi_rect=roi_rect,
+                            active_cards=table_state.get_active_cards()
+                        )
+                        if removal_res["decision"] == "removed":
+                            card_id = removal_res["card_instance_id"]
+                            print(f"-> [Removal] Wykryto usunięcie aktywnej karty: {card_id}")
+                            
+                            # Oznaczenie jako usunięta
+                            detection_id = f"detection_{diagnostics.attempt_index + 1:03d}"
+                            marked_card = table_state.mark_card_removed(
+                                card_instance_id=card_id,
+                                detection_id=detection_id,
+                                confidence=removal_res["removal_confidence"]
+                            )
+                            if marked_card:
+                                table_state.save()
+                                
+                                # Przygotowanie metadanych diagnostycznych
+                                removal_metadata = {
+                                    "event_type": "card_removed",
+                                    "card_instance_id": card_id,
+                                    "removal": {
+                                        "overlap_ratio": removal_res["overlap_ratio"],
+                                        "previous_vs_background": removal_res["previous_vs_background"],
+                                        "current_vs_background": removal_res["current_vs_background"],
+                                        "restoration_delta": removal_res["restoration_delta"],
+                                        "removal_confidence": removal_res["removal_confidence"],
+                                        "decision": "removed"
+                                    }
+                                }
+                                
+                                # Rysowanie statusu usunięcia dla podglądu
+                                box = np.intp(marked_card.position["corners_px"])
+                                if len(box) >= 3:
+                                    cv2.drawContours(display_warped, [box], -1, (0, 0, 255), 3)
+                                    cv2.line(display_warped, tuple(box[0]), tuple(box[2]), (0, 0, 255), 3)
+                                    cv2.line(display_warped, tuple(box[1]), tuple(box[3]), (0, 0, 255), 3)
+                                else:
+                                    bx, by, bw, bh = marked_card.position["bbox_px"]
+                                    cv2.rectangle(display_warped, (bx, by), (bx+bw, by+bh), (0, 0, 255), 3)
+                                
+                                cv2.putText(display_warped, f"REMOVED: {card_id}", 
+                                            (int(marked_card.position["center_px"][0]) - 50, int(marked_card.position["center_px"][1])),
+                                            cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+                                
+                                # Zapisz obraz wynikowy
+                                cv2.imwrite(str(output_dir / "table_detected_diff.png"), display_warped)
+                                
+                                # Zapisz diagnostykę próby
+                                diagnostics.record_attempt(
+                                    previous=snapshot_previous,
+                                    current=snapshot_current,
+                                    mask=debug_mask,
+                                    result_image=display_warped,
+                                    metadata=[removal_metadata],
+                                    status="card_removed"
+                                )
+                                
+                                # Akceptujemy aktualny stan jako poprzedni dla kolejnych porównań
+                                snapshot_manager.accept_current_as_previous()
+                                print("-> Sukces! Zarejestrowano usunięcie karty.")
+                                
+                                # Wyświetlamy zaktualizowany podgląd i kontynuujemy pętlę
+                                cv2.imshow("Wyprostowany Stol (Warped)", display_warped)
+                                cv2.waitKey(1)
+                                continue
+
                     # Precyzyjne dopasowanie karty w ROI
                     card_data = refinery.refine_card(warped, roi_rect, diff_mask=debug_mask, deck_profile=deck_profile)
                     

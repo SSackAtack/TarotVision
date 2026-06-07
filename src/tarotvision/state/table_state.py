@@ -22,6 +22,9 @@ class TableCard:
     confidence: float | None = None
     method: str | None = None
     best_rotation: int | None = None
+    removed_at: str | None = None
+    removal_detection_id: str | None = None
+    removal_confidence: float | None = None
     position: dict = field(default_factory=lambda: {
         "bbox_px": [0, 0, 0, 0],
         "center_px": [0, 0],
@@ -312,6 +315,43 @@ class TableState:
             if card.card_instance_id == instance_id:
                 return card
         return None
+
+    def mark_card_removed(
+        self,
+        card_instance_id: str,
+        detection_id: str,
+        confidence: float,
+    ) -> TableCard | None:
+        """
+        Oznacza kartę jako usuniętą w stanie stołu, aktualizuje status i pola removal_*
+        oraz dodaje zdarzenie usunięcia do historii.
+        """
+        card = self.get_card_by_instance_id(card_instance_id)
+        if not card:
+            logger.warning(f"Nie znaleziono karty {card_instance_id} do oznaczenia jako usunięta.")
+            return None
+
+        timestamp = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+        card.status = "removed"
+        card.removed_at = timestamp
+        card.removal_detection_id = detection_id
+        card.removal_confidence = confidence
+
+        event = {
+            "event_id": f"event_{len(self.history) + 1:03d}",
+            "timestamp": timestamp,
+            "event_type": "card_removed",
+            "card_instance_id": card_instance_id,
+            "detection_id": detection_id,
+            "removal_confidence": confidence
+        }
+        self.history.append(event)
+        logger.info(f"Oznaczono kartę {card_instance_id} jako usuniętą (detekcja: {detection_id}, pewność: {confidence:.2f}).")
+        return card
+
+    def get_active_cards(self) -> list[TableCard]:
+        """Zwraca listę kart, których status nie jest 'removed'."""
+        return [c for c in self.cards if c.status != "removed"]
 
     def set_table_size(self, width: int, height: int) -> None:
         """

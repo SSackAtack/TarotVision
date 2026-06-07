@@ -72,7 +72,7 @@ class DeckProfile:
 
         # Znajdź pierwszy plik graficzny
         valid_extensions = (".png", ".jpg", ".jpeg", ".bmp", ".tiff")
-        image_files = [f for f in os.listdir(full_scan_dir) if f.lower().endswith(valid_extensions)]
+        image_files = sorted([f for f in os.listdir(full_scan_dir) if f.lower().endswith(valid_extensions)])
 
         if not image_files:
             logger.warning(f"Brak skanów referencyjnych w katalogu: {full_scan_dir}")

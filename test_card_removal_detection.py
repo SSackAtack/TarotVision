@@ -229,5 +229,20 @@ class TestCardRemovalDetection(unittest.TestCase):
         self.assertEqual(state2.cards[0].status, "removed")
         self.assertEqual(state2.cards[0].removal_confidence, 0.95)
 
+    def test_min_area_rect_to_bbox_conversion(self):
+        import cv2
+        # Symulacja minAreaRect: środek (150, 175), rozmiar (100, 150), obrót 0 stopni
+        rect = ((150.0, 175.0), (100.0, 150.0), 0.0)
+        box_pts = cv2.boxPoints(rect)
+        changed_bbox = cv2.boundingRect(np.intp(box_pts))
+        
+        # Oczekiwany bbox to [100, 100, 100, 150] (z dokładnością do zaokrągleń)
+        self.assertEqual(len(changed_bbox), 4)
+        x, y, w, h = changed_bbox
+        self.assertAlmostEqual(x, 100, delta=2)
+        self.assertAlmostEqual(y, 100, delta=2)
+        self.assertAlmostEqual(w, 100, delta=2)
+        self.assertAlmostEqual(h, 150, delta=2)
+
 if __name__ == "__main__":
     unittest.main()

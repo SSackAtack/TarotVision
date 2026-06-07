@@ -267,11 +267,15 @@ def run_diff_detection():
                     # Sprawdzenie usunięcia karty przed próbą dopasowania nowej karty
                     snapshot_0 = snapshot_manager.get_snapshot_0()
                     if snapshot_0 is not None:
+                        # Konwersja minAreaRect do bounding box [x, y, w, h]
+                        box_pts = cv2.boxPoints(roi_rect)
+                        changed_bbox = cv2.boundingRect(np.intp(box_pts))
+                        
                         removal_res = removal_detector.detect_card_removal(
                             snapshot_0=snapshot_0,
                             snapshot_previous=snapshot_previous,
                             snapshot_current=snapshot_current,
-                            changed_roi_rect=roi_rect,
+                            changed_roi_rect=changed_bbox,
                             active_cards=table_state.get_active_cards()
                         )
                         if removal_res["decision"] == "removed":
@@ -304,7 +308,7 @@ def run_diff_detection():
                                 
                                 # Rysowanie statusu usunięcia dla podglądu
                                 box = np.intp(marked_card.position["corners_px"])
-                                if len(box) >= 3:
+                                if len(box) >= 4:
                                     cv2.drawContours(display_warped, [box], -1, (0, 0, 255), 3)
                                     cv2.line(display_warped, tuple(box[0]), tuple(box[2]), (0, 0, 255), 3)
                                     cv2.line(display_warped, tuple(box[1]), tuple(box[3]), (0, 0, 255), 3)

@@ -1,0 +1,17 @@
+{
+  "enabled": true,
+  "deck_id": "gilded",
+  "calibration_reference_id": "Gilded_38",
+  "reference_scan_dir": "assets/decks/gilded/reference_scans",
+  "output_profile_path": "output/sessions/current/session_color_profile.json",
+  "canonical_width_px": 600,
+  "canonical_height_px": 1032,
+  "method": "lab_mean_std_v1",
+  "apply_to_matcher": true,
+  "quality_thresholds": {
+    "min_improvement_required": false,
+    "max_brightness_delta_abs": 80,
+    "max_channel_gain": 3.0,
+    "min_channel_gain": 0.3
+  }
+}

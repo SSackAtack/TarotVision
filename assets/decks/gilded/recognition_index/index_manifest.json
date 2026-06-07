@@ -1,0 +1,446 @@
+{
+  "index_type": "reference_deck_recognition_index",
+  "index_version": "recognition_index_v1",
+  "deck_id": "gilded",
+  "created_at": "2026-06-07T14:01:07.555361",
+  "canonical_size": [
+    600,
+    1032
+  ],
+  "source_scan_dir": "assets/decks/gilded/reference_scans",
+  "features_file": "features.npz",
+  "feature_extractors": {
+    "gray_fingerprint": {
+      "enabled": true,
+      "size": [
+        64,
+        110
+      ]
+    },
+    "dhash": {
+      "enabled": true,
+      "size": [
+        9,
+        8
+      ]
+    },
+    "gray_histogram": {
+      "enabled": true,
+      "bins": 64
+    },
+    "color_histogram": {
+      "enabled": true,
+      "space": "HSV",
+      "bins": [
+        8,
+        8,
+        8
+      ]
+    },
+    "region_fingerprints": {
+      "enabled": true,
+      "grid": [
+        3,
+        3
+      ]
+    }
+  },
+  "references": [
+    {
+      "reference_id": "Gilded_00",
+      "deck_id": "gilded",
+      "source_path": "reference_scans/Gilded_00.png"
+    },
+    {
+      "reference_id": "Gilded_01",
+      "deck_id": "gilded",
+      "source_path": "reference_scans/Gilded_01.png"
+    },
+    {
+      "reference_id": "Gilded_02",
+      "deck_id": "gilded",
+      "source_path": "reference_scans/Gilded_02.png"
+    },
+    {
+      "reference_id": "Gilded_03",
+      "deck_id": "gilded",
+      "source_path": "reference_scans/Gilded_03.png"
+    },
+    {
+      "reference_id": "Gilded_04",
+      "deck_id": "gilded",
+      "source_path": "reference_scans/Gilded_04.png"
+    },
+    {
+      "reference_id": "Gilded_05",
+      "deck_id": "gilded",
+      "source_path": "reference_scans/Gilded_05.png"
+    },
+    {
+      "reference_id": "Gilded_06",
+      "deck_id": "gilded",
+      "source_path": "reference_scans/Gilded_06.png"
+    },
+    {
+      "reference_id": "Gilded_07",
+      "deck_id": "gilded",
+      "source_path": "reference_scans/Gilded_07.png"
+    },
+    {
+      "reference_id": "Gilded_08",
+      "deck_id": "gilded",
+      "source_path": "reference_scans/Gilded_08.png"
+    },
+    {
+      "reference_id": "Gilded_09",
+      "deck_id": "gilded",
+      "source_path": "reference_scans/Gilded_09.png"
+    },
+    {
+      "reference_id": "Gilded_10",
+      "deck_id": "gilded",
+      "source_path": "reference_scans/Gilded_10.png"
+    },
+    {
+      "reference_id": "Gilded_11",
+      "deck_id": "gilded",
+      "source_path": "reference_scans/Gilded_11.png"
+    },
+    {
+      "reference_id": "Gilded_12",
+      "deck_id": "gilded",
+      "source_path": "reference_scans/Gilded_12.png"
+    },
+    {
+      "reference_id": "Gilded_13",
+      "deck_id": "gilded",
+      "source_path": "reference_scans/Gilded_13.png"
+    },
+    {
+      "reference_id": "Gilded_14",
+      "deck_id": "gilded",
+      "source_path": "reference_scans/Gilded_14.png"
+    },
+    {
+      "reference_id": "Gilded_15",
+      "deck_id": "gilded",
+      "source_path": "reference_scans/Gilded_15.png"
+    },
+    {
+      "reference_id": "Gilded_16",
+      "deck_id": "gilded",
+      "source_path": "reference_scans/Gilded_16.png"
+    },
+    {
+      "reference_id": "Gilded_17",
+      "deck_id": "gilded",
+      "source_path": "reference_scans/Gilded_17.png"
+    },
+    {
+      "reference_id": "Gilded_18",
+      "deck_id": "gilded",
+      "source_path": "reference_scans/Gilded_18.png"
+    },
+    {
+      "reference_id": "Gilded_19",
+      "deck_id": "gilded",
+      "source_path": "reference_scans/Gilded_19.png"
+    },
+    {
+      "reference_id": "Gilded_20",
+      "deck_id": "gilded",
+      "source_path": "reference_scans/Gilded_20.png"
+    },
+    {
+      "reference_id": "Gilded_21",
+      "deck_id": "gilded",
+      "source_path": "reference_scans/Gilded_21.png"
+    },
+    {
+      "reference_id": "Gilded_22",
+      "deck_id": "gilded",
+      "source_path": "reference_scans/Gilded_22.png"
+    },
+    {
+      "reference_id": "Gilded_23",
+      "deck_id": "gilded",
+      "source_path": "reference_scans/Gilded_23.png"
+    },
+    {
+      "reference_id": "Gilded_24",
+      "deck_id": "gilded",
+      "source_path": "reference_scans/Gilded_24.png"
+    },
+    {
+      "reference_id": "Gilded_25",
+      "deck_id": "gilded",
+      "source_path": "reference_scans/Gilded_25.png"
+    },
+    {
+      "reference_id": "Gilded_26",
+      "deck_id": "gilded",
+      "source_path": "reference_scans/Gilded_26.png"
+    },
+    {
+      "reference_id": "Gilded_27",
+      "deck_id": "gilded",
+      "source_path": "reference_scans/Gilded_27.png"
+    },
+    {
+      "reference_id": "Gilded_28",
+      "deck_id": "gilded",
+      "source_path": "reference_scans/Gilded_28.png"
+    },
+    {
+      "reference_id": "Gilded_29",
+      "deck_id": "gilded",
+      "source_path": "reference_scans/Gilded_29.png"
+    },
+    {
+      "reference_id": "Gilded_30",
+      "deck_id": "gilded",
+      "source_path": "reference_scans/Gilded_30.png"
+    },
+    {
+      "reference_id": "Gilded_31",
+      "deck_id": "gilded",
+      "source_path": "reference_scans/Gilded_31.png"
+    },
+    {
+      "reference_id": "Gilded_32",
+      "deck_id": "gilded",
+      "source_path": "reference_scans/Gilded_32.png"
+    },
+    {
+      "reference_id": "Gilded_33",
+      "deck_id": "gilded",
+      "source_path": "reference_scans/Gilded_33.png"
+    },
+    {
+      "reference_id": "Gilded_34",
+      "deck_id": "gilded",
+      "source_path": "reference_scans/Gilded_34.png"
+    },
+    {
+      "reference_id": "Gilded_35",
+      "deck_id": "gilded",
+      "source_path": "reference_scans/Gilded_35.png"
+    },
+    {
+      "reference_id": "Gilded_36",
+      "deck_id": "gilded",
+      "source_path": "reference_scans/Gilded_36.png"
+    },
+    {
+      "reference_id": "Gilded_37",
+      "deck_id": "gilded",
+      "source_path": "reference_scans/Gilded_37.png"
+    },
+    {
+      "reference_id": "Gilded_38",
+      "deck_id": "gilded",
+      "source_path": "reference_scans/Gilded_38.png"
+    },
+    {
+      "reference_id": "Gilded_39",
+      "deck_id": "gilded",
+      "source_path": "reference_scans/Gilded_39.png"
+    },
+    {
+      "reference_id": "Gilded_40",
+      "deck_id": "gilded",
+      "source_path": "reference_scans/Gilded_40.png"
+    },
+    {
+      "reference_id": "Gilded_41",
+      "deck_id": "gilded",
+      "source_path": "reference_scans/Gilded_41.png"
+    },
+    {
+      "reference_id": "Gilded_42",
+      "deck_id": "gilded",
+      "source_path": "reference_scans/Gilded_42.png"
+    },
+    {
+      "reference_id": "Gilded_43",
+      "deck_id": "gilded",
+      "source_path": "reference_scans/Gilded_43.png"
+    },
+    {
+      "reference_id": "Gilded_44",
+      "deck_id": "gilded",
+      "source_path": "reference_scans/Gilded_44.png"
+    },
+    {
+      "reference_id": "Gilded_45",
+      "deck_id": "gilded",
+      "source_path": "reference_scans/Gilded_45.png"
+    },
+    {
+      "reference_id": "Gilded_46",
+      "deck_id": "gilded",
+      "source_path": "reference_scans/Gilded_46.png"
+    },
+    {
+      "reference_id": "Gilded_47",
+      "deck_id": "gilded",
+      "source_path": "reference_scans/Gilded_47.png"
+    },
+    {
+      "reference_id": "Gilded_48",
+      "deck_id": "gilded",
+      "source_path": "reference_scans/Gilded_48.png"
+    },
+    {
+      "reference_id": "Gilded_49",
+      "deck_id": "gilded",
+      "source_path": "reference_scans/Gilded_49.png"
+    },
+    {
+      "reference_id": "Gilded_50",
+      "deck_id": "gilded",
+      "source_path": "reference_scans/Gilded_50.png"
+    },
+    {
+      "reference_id": "Gilded_51",
+      "deck_id": "gilded",
+      "source_path": "reference_scans/Gilded_51.png"
+    },
+    {
+      "reference_id": "Gilded_52",
+      "deck_id": "gilded",
+      "source_path": "reference_scans/Gilded_52.png"
+    },
+    {
+      "reference_id": "Gilded_53",
+      "deck_id": "gilded",
+      "source_path": "reference_scans/Gilded_53.png"
+    },
+    {
+      "reference_id": "Gilded_54",
+      "deck_id": "gilded",
+      "source_path": "reference_scans/Gilded_54.png"
+    },
+    {
+      "reference_id": "Gilded_55",
+      "deck_id": "gilded",
+      "source_path": "reference_scans/Gilded_55.png"
+    },
+    {
+      "reference_id": "Gilded_56",
+      "deck_id": "gilded",
+      "source_path": "reference_scans/Gilded_56.png"
+    },
+    {
+      "reference_id": "Gilded_57",
+      "deck_id": "gilded",
+      "source_path": "reference_scans/Gilded_57.png"
+    },
+    {
+      "reference_id": "Gilded_58",
+      "deck_id": "gilded",
+      "source_path": "reference_scans/Gilded_58.png"
+    },
+    {
+      "reference_id": "Gilded_59",
+      "deck_id": "gilded",
+      "source_path": "reference_scans/Gilded_59.png"
+    },
+    {
+      "reference_id": "Gilded_60",
+      "deck_id": "gilded",
+      "source_path": "reference_scans/Gilded_60.png"
+    },
+    {
+      "reference_id": "Gilded_61",
+      "deck_id": "gilded",
+      "source_path": "reference_scans/Gilded_61.png"
+    },
+    {
+      "reference_id": "Gilded_62",
+      "deck_id": "gilded",
+      "source_path": "reference_scans/Gilded_62.png"
+    },
+    {
+      "reference_id": "Gilded_63",
+      "deck_id": "gilded",
+      "source_path": "reference_scans/Gilded_63.png"
+    },
+    {
+      "reference_id": "Gilded_64",
+      "deck_id": "gilded",
+      "source_path": "reference_scans/Gilded_64.png"
+    },
+    {
+      "reference_id": "Gilded_65",
+      "deck_id": "gilded",
+      "source_path": "reference_scans/Gilded_65.png"
+    },
+    {
+      "reference_id": "Gilded_66",
+      "deck_id": "gilded",
+      "source_path": "reference_scans/Gilded_66.png"
+    },
+    {
+      "reference_id": "Gilded_67",
+      "deck_id": "gilded",
+      "source_path": "reference_scans/Gilded_67.png"
+    },
+    {
+      "reference_id": "Gilded_68",
+      "deck_id": "gilded",
+      "source_path": "reference_scans/Gilded_68.png"
+    },
+    {
+      "reference_id": "Gilded_69",
+      "deck_id": "gilded",
+      "source_path": "reference_scans/Gilded_69.png"
+    },
+    {
+      "reference_id": "Gilded_70",
+      "deck_id": "gilded",
+      "source_path": "reference_scans/Gilded_70.png"
+    },
+    {
+      "reference_id": "Gilded_71",
+      "deck_id": "gilded",
+      "source_path": "reference_scans/Gilded_71.png"
+    },
+    {
+      "reference_id": "Gilded_72",
+      "deck_id": "gilded",
+      "source_path": "reference_scans/Gilded_72.png"
+    },
+    {
+      "reference_id": "Gilded_73",
+      "deck_id": "gilded",
+      "source_path": "reference_scans/Gilded_73.png"
+    },
+    {
+      "reference_id": "Gilded_74",
+      "deck_id": "gilded",
+      "source_path": "reference_scans/Gilded_74.png"
+    },
+    {
+      "reference_id": "Gilded_75",
+      "deck_id": "gilded",
+      "source_path": "reference_scans/Gilded_75.png"
+    },
+    {
+      "reference_id": "Gilded_76",
+      "deck_id": "gilded",
+      "source_path": "reference_scans/Gilded_76.png"
+    },
+    {
+      "reference_id": "Gilded_77",
+      "deck_id": "gilded",
+      "source_path": "reference_scans/Gilded_77.png"
+    },
+    {
+      "reference_id": "Gilded_back",
+      "deck_id": "gilded",
+      "source_path": "reference_scans/Gilded_back.png"
+    }
+  ],
+  "source_scans_count": 79
+}

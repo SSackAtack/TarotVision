@@ -54,11 +54,16 @@ Aby wyeliminować zakłócenia takie jak faktura stołu, cienie czy odblaski św
 ---
 
 ## Następny Krok Techniczny
-
-Pipeline detekcji, korekcji perspektywy, rolling comparison, stabilizacji, modelowej rafinacji geometrycznej (TV-008), automatycznego wycinania/prostowania (TV-009) oraz realnej walidacji w warunkach live (TV-010) został w pełni przetestowany i zatwierdzony. Wszystkie wygenerowane kropy mają właściwe wymiary kanoniczne (600x1032 px) i są gotowe do analizy.
+ 
+Procedury:
+*   **TV-011 (Rozpoznawanie kart):** Wdrożono image matching dopasowujący cropy z kamery 600x1032 do bazy referencyjnych skanów za pomocą normalizowanego grayscale i testowania rotacji (0° i 180°).
+*   **TV-012 (Camera Preflight & Quality Lock):** Wdrożono sprawdzanie parametrów obrazu przed sesją (autofokus, ekspozycja, balans bieli) oraz blokadę ustawień za pomocą profilu `camera_settings.json`.
+*   **TV-013 (Session Color Calibration):** Wdrożono kalibrację różnic kolorystycznych kamera ↔ skaner za pomocą profilu LAB mean/std transfer z użyciem karty kalibracyjnej (np. `Gilded_38`).
+*   **TV-014 (Reference Deck Recognition Index):** Wdrożono indeks cech referencyjnych (NPZ + JSON) z ekstraktorami: gray_fingerprint, dhash, histogram jasności, histogram kolorów HSV i region_fingerprints.
+*   **TV-015 (Semantic Card Mapping & Deck Back):** Wdrożono mapowanie semantyczne (JSON) wraz z loaderem i walidatorem formatu, a także obsługę rewersu talii (`deck_back`) jako wpisu specjalnego. Zadanie zostało zakończone i ręcznie zweryfikowane dla talii Gilded. Plik `card_mapping.json` zawiera kompletne mapowanie 78 kart tarota oraz rewersu talii.
 
 Najbliższy problem techniczny do wdrożenia to:
-*   **TV-011:** Rozpoznawanie obrazowe karty na podstawie wygenerowanego cropa i bazy skanów referencyjnych (z dopasowaniem szablonów).
+*   **TV-016:** Wdrożenie TableState (zarządzanie rozkładem kart na stole) oraz integracja z systemem interpretacji rozkładu tarota za pomocą LLM.
 
 ---
 

@@ -55,10 +55,10 @@ Aby wyeliminować zakłócenia takie jak faktura stołu, cienie czy odblaski św
 
 ## Następny Krok Techniczny
 
-MVP 1 wraz z obsługą geometrii wielu talii (TV-008) oraz wycinaniem i prostowaniem perspektywicznym kart (TV-009) zostało w pełni zintegrowane. System stabilnie dopasowuje pełną ramkę karty na podstawie różnic snapshotów, dynamicznie dobiera profil geometryczny aktywnej talii (Gilded), wykrywa potencjalne niejednoznaczności i generuje pionowy crop w kanonicznym formacie.
+Pipeline detekcji, korekcji perspektywy, rolling comparison, stabilizacji, modelowej rafinacji geometrycznej (TV-008), automatycznego wycinania/prostowania (TV-009) oraz realnej walidacji w warunkach live (TV-010) został w pełni przetestowany i zatwierdzony. Wszystkie wygenerowane kropy mają właściwe wymiary kanoniczne (600x1032 px) i są gotowe do analizy.
 
 Najbliższy problem techniczny do wdrożenia to:
-*   **TV-010:** Przygotowanie rozpoznawania obrazowego karty na podstawie cropa i skanów referencyjnych.
+*   **TV-011:** Rozpoznawanie obrazowe karty na podstawie wygenerowanego cropa i bazy skanów referencyjnych (z dopasowaniem szablonów).
 
 ---
 

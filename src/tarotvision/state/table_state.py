@@ -195,18 +195,28 @@ class TableState:
         # Wyznaczenie statusu
         mapping_status = recognition_result.get("mapping_status", "unmapped")
         best_ref_id = recognition_result.get("best_reference_id")
+        rec_decision = recognition_result.get("recognition_decision")
         
-        if mapping_status == "mapped":
-            status = "recognized"
-        elif mapping_status == "deck_back":
+        if mapping_status == "deck_back":
             status = "deck_back"
-        elif not best_ref_id:
+        elif rec_decision == "recognized":
+            if mapping_status == "mapped":
+                status = "recognized"
+            else:
+                status = "unrecognized"
+        elif rec_decision == "ambiguous":
+            status = "ambiguous"
+        elif rec_decision == "unrecognized":
             status = "unrecognized"
         else:
-            status = "unrecognized"
-            
-        if recognition_result.get("ambiguous", False):
-            status = "ambiguous"
+            # Fallback na starą logikę w razie braku pola recognition_decision
+            if mapping_status == "mapped":
+                status = "recognized"
+            else:
+                status = "unrecognized"
+                
+            if recognition_result.get("ambiguous", False):
+                status = "ambiguous"
             
         # Podział na recognized_card i recognized_special
         recognized_card = None

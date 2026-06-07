@@ -415,11 +415,15 @@ def run_diff_detection():
                             mapping_status = match_res.get("mapping_status")
                             confidence = match_res.get("confidence", 0.0)
                             
+                            decision = match_res.get("recognition_decision")
+                            margin = match_res.get("score_margin", 0.0)
+                            print(f"-> [Matcher] decision={decision}, confidence={confidence:.4f}, margin={margin:.4f}")
+                            
                             if mapping_status == "mapped":
                                 card_name = match_res["recognized_card"]["display_name"]
-                                print(f"-> [Matcher] Rozpoznano kartę: {card_name} ({best_ref_id}), confidence: {confidence:.4f}")
+                                print(f"-> [Matcher] Rozpoznano kartę: {card_name} ({best_ref_id})")
                             elif mapping_status == "deck_back":
-                                print(f"-> [Matcher] Rozpoznano rewers: Gilded Back ({best_ref_id}), confidence: {confidence:.4f}")
+                                print(f"-> [Matcher] Rozpoznano rewers: Gilded Back ({best_ref_id})")
                             else:
                                 print(f"-> [Matcher] Karta nierozpoznana / brak mapowania (best_ref_id: {best_ref_id})")
                                 

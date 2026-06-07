@@ -74,6 +74,13 @@ class TestIndexedImageMatcher(unittest.TestCase):
         self.assertEqual(result["best_rotation"], 0)
         self.assertTrue(0.0 <= result["confidence"] <= 1.0)
         
+        # Sprawdzamy obecność nowych pól z decision gate (TV-016C)
+        self.assertIn("recognition_decision", result)
+        self.assertIn("top1_reference_id", result)
+        self.assertIn("top2_reference_id", result)
+        self.assertIn("score_margin", result)
+        self.assertIn("decision_thresholds", result)
+        
         # Sprawdzamy czy candidates są posortowani i nie są puści
         self.assertTrue(len(result["candidates"]) > 0)
         self.assertEqual(result["candidates"][0]["reference_id"], "Card_A")

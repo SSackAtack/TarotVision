@@ -48,7 +48,7 @@ class ImageMatcher:
         """
         if not reference_images:
             logger.warning("Brak obrazów referencyjnych do porównania.")
-            return {
+            result = {
                 "recognized_deck": deck_id,
                 "recognized_card": None,
                 "best_reference_id": None,
@@ -57,6 +57,8 @@ class ImageMatcher:
                 "best_rotation": 0,
                 "candidates": []
             }
+            from tarotvision.recognition.decision import apply_recognition_decision
+            return apply_recognition_decision(result)
 
         # Opcjonalna korekcja koloru z profilu sesyjnego przed dopasowaniem
         if self.session_color_profile:
@@ -112,4 +114,5 @@ class ImageMatcher:
             "candidates": candidates
         }
         
-        return result
+        from tarotvision.recognition.decision import apply_recognition_decision
+        return apply_recognition_decision(result)

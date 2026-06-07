@@ -260,7 +260,7 @@ def run_diff_detection():
                     continue
                 
                 # Detekcja zmiany (ROI)
-                roi_rect, debug_mask = diff_detector.detect_change_roi(snapshot_current, snapshot_previous)
+                roi_rect, debug_mask, diff_debug = diff_detector.detect_change_roi_with_debug(snapshot_current, snapshot_previous)
                 cv2.imwrite(str(output_dir / "debug_diff_mask.png"), debug_mask)
                 
                 if roi_rect is not None:
@@ -303,7 +303,8 @@ def run_diff_detection():
                                         "restoration_delta": removal_res["restoration_delta"],
                                         "removal_confidence": removal_res["removal_confidence"],
                                         "decision": "removed"
-                                    }
+                                    },
+                                    "diff_debug": diff_debug
                                 }
                                 
                                 # Rysowanie statusu usunięcia dla podglądu
@@ -389,9 +390,13 @@ def run_diff_detection():
                                 current=snapshot_current,
                                 mask=debug_mask,
                                 result_image=display_warped,
-                                metadata=cards_metadata,
+                                metadata={
+                                    "event_type": "card_added",
+                                    "cards": cards_metadata,
+                                    "diff_debug": diff_debug
+                                },
                                 status="accepted",
-                            )
+                             )
                             
                             crop_img = crop_res["crop_image"]
                             # Zapis centralny z indeksem próby
@@ -474,7 +479,10 @@ def run_diff_detection():
                                 current=snapshot_current,
                                 mask=debug_mask,
                                 result_image=display_warped,
-                                metadata=[],
+                                metadata={
+                                    "cards": [],
+                                    "diff_debug": diff_debug
+                                },
                                 status="crop_failed",
                             )
                             print("-> Błąd: Wycięcie cropa karty nie powiodło się (crop_failed).")
@@ -485,7 +493,10 @@ def run_diff_detection():
                             current=snapshot_current,
                             mask=debug_mask,
                             result_image=display_warped,
-                            metadata=[],
+                            metadata={
+                                "cards": [],
+                                "diff_debug": diff_debug
+                            },
                             status="refinery_failed",
                         )
                         print("-> Błąd: Precyzyjne dopasowanie karty w ROI nie powiodło się.")
@@ -495,7 +506,10 @@ def run_diff_detection():
                         current=snapshot_current,
                         mask=debug_mask,
                         result_image=display_warped,
-                        metadata=[],
+                        metadata={
+                            "cards": [],
+                            "diff_debug": diff_debug
+                        },
                         status="no_roi",
                     )
                     print("-> Błąd: Detektor różnicowy nie wykrył obszaru zmian.")

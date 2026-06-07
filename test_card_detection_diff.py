@@ -17,6 +17,7 @@ from tarotvision.vision.perspective import TablePerspectiveCorrector
 from tarotvision.vision.diff import DiffDetector
 from tarotvision.vision.refinery import CardRefinery
 from tarotvision.decks.profile import DeckProfile
+from tarotvision.vision.cropper import CardCropper
 
 def run_diff_detection():
     print("--- TarotVision: Test Detekcji Kart za pomocą Różnicy Snapshotów ---")
@@ -38,6 +39,7 @@ def run_diff_detection():
     diagnostics = DetectionDiagnosticsRecorder(base_dir="output/sessions/current/detections", max_records=20)
     diff_detector = DiffDetector(diff_threshold=25, min_area=10000, max_area=150000)
     refinery = CardRefinery(margin=20)
+    cropper = CardCropper()
     
     # Inicjalizacja kamery (CameraCapture automatycznie wykryje sprawny port nie-czarny)
     print("Inicjalizacja kamery...")
@@ -220,7 +222,7 @@ def run_diff_detection():
                                     
                         # Zapisz obraz wynikowy
                         cv2.imwrite(str(output_dir / "table_detected_diff.png"), display_warped)
-                        diagnostics.record_attempt(
+                        record_dir = diagnostics.record_attempt(
                             previous=snapshot_previous,
                             current=snapshot_current,
                             mask=debug_mask,
@@ -228,6 +230,19 @@ def run_diff_detection():
                             metadata=cards_metadata,
                             status="accepted",
                         )
+                        
+                        # Generowanie i zapis cropa karty
+                        crops_dir = Path("output/processed/crops")
+                        crops_dir.mkdir(parents=True, exist_ok=True)
+                        crop_res = cropper.crop_card(warped, card_data, deck_profile)
+                        if crop_res and crop_res["success"]:
+                            crop_img = crop_res["crop_image"]
+                            # Zapis centralny z indeksem próby
+                            cv2.imwrite(str(crops_dir / f"card_crop_{diagnostics.attempt_index:03d}.png"), crop_img)
+                            # Zapis lokalny w katalogu diagnostyki
+                            cv2.imwrite(str(record_dir / "crop.png"), crop_img)
+                            print(f"-> Zapisano crop karty w: {record_dir / 'crop.png'}")
+
                         print(f"-> Sukces! Zapisano obraz wynikowy w: {output_dir / 'table_detected_diff.png'}")
                         print(f"-> Zapisano JSON w: {output_dir / 'detected_cards.json'}")
                         

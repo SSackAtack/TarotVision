@@ -15,16 +15,17 @@ class CardRefinery:
         """
         self.margin = margin
 
-    def refine_card(self, image, roi_rect, diff_mask=None, deck_profile=None) -> dict | None:
+    def refine_card(self, image, roi_rect, diff_mask=None, deck_profile=None, deck_profiles=None) -> dict | None:
         """
         Precyzyjnie lokalizuje kartę wewnątrz ROI i zwraca jej metadane.
-        Używa maski różnicowej i modelu geometrii talii. W przypadku ich braku lub błędu cofa się do progowania Otsu.
+        Używa maski różnicowej i modeli geometrii talii. W przypadku ich braku lub błędu cofa się do progowania Otsu.
 
         :param image: Pełny wyprostowany obraz stołu BGR (1200x800).
         :param roi_rect: Prostokąt obrócony ((cx, cy), (w, h), angle) z detektora różnicowego.
         :param diff_mask: Opcjonalna maska binarna różnic ze snapshot-diff.
-        :param deck_profile: Opcjonalny profil talii (DeckProfile).
-        :return: Słownik z danymi geometrycznymi karty (corners, center, size, angle) lub None.
+        :param deck_profile: Opcjonalny pojedynczy profil talii (DeckProfile) - zachowanie kompatybilności.
+        :param deck_profiles: Opcjonalna lista profili talii (DeckProfile).
+        :return: Słownik z danymi geometrycznymi karty i metadanymi dopasowania lub None.
         """
         if image is None or roi_rect is None:
             return None
@@ -46,8 +47,22 @@ class CardRefinery:
         if (x_end - x_start) <= 0 or (y_end - y_start) <= 0:
             return None
 
+        # 3. Obsługa profilu/profili talii
+        if deck_profiles is not None:
+            profiles_list = list(deck_profiles)
+        elif deck_profile is not None:
+            profiles_list = [deck_profile]
+        else:
+            try:
+                from tarotvision.decks.library import DeckLibrary
+                library = DeckLibrary()
+                profiles_list = library.load_active_profiles()
+            except Exception as e:
+                logger.warning(f"Nie udało się załadować profili z DeckLibrary: {e}")
+                profiles_list = []
+
         # Spróbuj najpierw dopasowania modelowego na podstawie maski różnicowej
-        if diff_mask is not None:
+        if diff_mask is not None and profiles_list:
             try:
                 roi_mask = diff_mask[y_start:y_end, x_start:x_end]
                 
@@ -70,14 +85,52 @@ class CardRefinery:
                     rect = cv2.minAreaRect(best_contour)
                     (cx_local, cy_local), (w_card, h_card), angle = rect
                     
-                    # Pobieramy proporcje z profilu talii (stosunek wysokości do szerokości, np. 1.714)
-                    aspect_ratio = 1.714
-                    if deck_profile and deck_profile.aspect_ratio_height_to_width:
-                        aspect_ratio = deck_profile.aspect_ratio_height_to_width
+                    detected_ratio = max(w_card, h_card) / min(w_card, h_card) if min(w_card, h_card) > 0 else 1.0
                     
-                    # Korygujemy boki zachowując fizyczną proporcję talii
+                    # Liczymy score dopasowania dla każdej aktywnej talii
+                    candidates = []
+                    for profile in profiles_list:
+                        aspect_ratio = profile.aspect_ratio_height_to_width if profile.aspect_ratio_height_to_width else 1.714
+                        ratio_diff = abs(detected_ratio - aspect_ratio)
+                        
+                        # Geometry score (1.0 dla idealnego ratio, maleje liniowo przy różnicy)
+                        geometry_score = max(0.0, 1.0 - 5.0 * ratio_diff)
+                        
+                        candidates.append({
+                            "profile": profile,
+                            "deck_id": profile.deck_id,
+                            "aspect_ratio": aspect_ratio,
+                            "geometry_score": float(geometry_score),
+                            "ratio_diff": ratio_diff
+                        })
+                    
+                    # Sortujemy kandydatów po score (najwyższy na początku)
+                    candidates = sorted(candidates, key=lambda x: x["geometry_score"], reverse=True)
+                    
+                    best_candidate = candidates[0]
+                    best_profile = best_candidate["profile"]
+                    best_score = best_candidate["geometry_score"]
+                    best_aspect_ratio = best_candidate["aspect_ratio"]
+                    
+                    # Wykrywanie niejednoznaczności (ambiguity)
+                    is_ambiguous = False
+                    similar_profiles = []
+                    
+                    if len(candidates) > 1:
+                        for cand in candidates:
+                            if cand == best_candidate:
+                                similar_profiles.append(cand["deck_id"])
+                            else:
+                                score_diff = abs(best_score - cand["geometry_score"])
+                                ratio_diff_between = abs(best_aspect_ratio - cand["aspect_ratio"])
+                                # Jeśli score_diff <= 0.05 lub różnica aspect_ratio <= 0.02
+                                if score_diff <= 0.05 or ratio_diff_between <= 0.02:
+                                    is_ambiguous = True
+                                    similar_profiles.append(cand["deck_id"])
+                    
+                    # Korygujemy boki zachowując fizyczną proporcję talii o najwyższym score
                     L = max(w_card, h_card)
-                    S = L / aspect_ratio
+                    S = L / best_aspect_ratio
                     
                     # Przypisujemy wymiary zgodnie z orientacją
                     if w_card >= h_card:
@@ -95,19 +148,34 @@ class CardRefinery:
                     for pt in box:
                         global_corners.append([float(pt[0] + x_start), float(pt[1] + y_start)])
                         
+                    geometry_candidates = [
+                        {
+                            "deck_id": c["deck_id"],
+                            "aspect_ratio": round(c["aspect_ratio"], 3),
+                            "geometry_score": round(c["geometry_score"], 3)
+                        } for c in candidates
+                    ]
+                    
                     card_metadata = {
                         "center": (int(cx_global), int(cy_global)),
                         "size": (int(w_new), int(h_new)),
                         "angle": float(angle),
                         "corners": global_corners,
-                        "frame_source": "diff_mask_deck_model_fit"
+                        "frame_source": "diff_mask_multi_deck_model_fit",
+                        "selected_geometry_profile": best_profile.deck_id,
+                        "geometry_confidence": round(best_score, 3),
+                        "geometry_ambiguous": is_ambiguous,
+                        "similar_geometry_profiles": similar_profiles if is_ambiguous else [],
+                        "geometry_candidates": geometry_candidates,
+                        "recognized_deck": None,
+                        "recognized_card": None
                     }
                     
-                    logger.info(f"Modelowe dopasowanie z maski różnicowej zakończone sukcesem: Center={card_metadata['center']}, Size={card_metadata['size']}, Kąt={card_metadata['angle']:.2f}°")
+                    logger.info(f"Modelowe dopasowanie z maski różnicowej zakończone sukcesem. Wybrana talia: '{best_profile.deck_id}' (Score: {best_score:.3f}, Niejednoznaczność: {is_ambiguous})")
                     return card_metadata
                     
             except Exception as e:
-                logger.error(f"Błąd podczas modelowego dopasowania maski: {e}. Uruchamiam fallback na Otsu.")
+                logger.error(f"Błąd podczas modelowego dopasowania maski pod wiele talii: {e}. Uruchamiam fallback na Otsu.")
 
         # FALLBACK: Klasyczne progowanie Otsu na obrazie BGR
         logger.info("Uruchamiam fallback: Progowanie Otsu na obrazie BGR.")
@@ -154,7 +222,14 @@ class CardRefinery:
             "size": (int(w_card), int(h_card)),
             "angle": float(angle),
             "corners": global_corners,
-            "frame_source": "otsu_bgr"
+            "frame_source": "otsu_bgr",
+            "selected_geometry_profile": profiles_list[0].deck_id if profiles_list else "unknown",
+            "geometry_confidence": 0.5,
+            "geometry_ambiguous": False,
+            "similar_geometry_profiles": [],
+            "geometry_candidates": [],
+            "recognized_deck": None,
+            "recognized_card": None
         }
         
         logger.info(f"Klasyczne dopasowanie Otsu zakończone sukcesem: Center={card_metadata['center']}, Size={card_metadata['size']}, Kąt={card_metadata['angle']:.2f}°")

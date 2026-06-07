@@ -7,7 +7,7 @@ TV-007
 Modelowe dopasowanie pełnej ramki karty na podstawie maski różnicowej i geometrii talii
 
 ## Status
-Do wykonania w kolejnej sesji.
+Zakończone
 
 ---
 
@@ -504,11 +504,20 @@ Najważniejsza zmiana polega na tym, że `CardRefinery` ma dopasowywać znany fi
 
 ---
 
+## Wynik realizacji
+- **Data realizacji:** 2026-06-07
+- **Opis wdrożenia:** Zaimplementowano moduł `DeckProfile` wczytujący konfigurację geometrii talii `Gilded`. Na podstawie skanu `Gilded_38.png` automatycznie wyznaczono rzeczywiste wymiary karty `600x1032 px` i aspect ratio `1.720`.
+- **Dopasowanie modelowe:** `CardRefinery` wykorzystuje `diff_mask` z `DiffDetector` oraz `deck_profile` do modelowego dopasowania pełnej ramki karty (skaluje krótszy bok do proporcji `1.720` na podstawie dłuższego boku z minAreaRect maski).
+- **Weryfikacja:** Testy diagnostyczne potwierdziły, że `detection_002` (druga karta) daje pełną ramkę o prawidłowych proporcjach i rozmiarze `286x166 px` (zamiast obciętej ramki `138x166 px` ze starego Otsu).
+- **Fallback:** Klasyczne progowanie Otsu na obrazie BGR pozostało jako bezpieczny fallback.
+- **Testy offline:** Ukończone pełnym sukcesem (zarówno diagnostics, jak i testy regresji).
+
+---
+
 ## Następny krok po TV-007
 
 Po ustabilizowaniu pełnej ramki karty można przejść do:
 
 ```text
-TV-008 — crop i prostowanie pojedynczej karty do kanonicznego rozmiaru talii
-TV-009 — rozpoznawanie konkretnej karty na podstawie cropa i skanów referencyjnych
+TV-008 — crop i prostowanie pojedynczej karty do kanonicznych wymiarów talii Gilded.
 ```

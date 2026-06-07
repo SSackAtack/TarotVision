@@ -55,7 +55,10 @@ Aby wyeliminować zakłócenia takie jak faktura stołu, cienie czy odblaski św
 
 ## Następny Krok Techniczny
 
-Rolling comparison działa poprawnie. Najbliższy problem techniczny dotyczy `CardRefinery`: przy drugiej karcie test fizyczny pokazał poprawną maskę różnicową, ale finalna zielona ramka objęła tylko górną część karty. Następne zadanie powinno ustabilizować dopasowanie pełnego obrysu karty w ROI.
+MVP 1 zostało w pełni zintegrowane i stabilnie dopasowuje pełną ramkę karty na podstawie różnic snapshotów (rolling comparison) i znanego profilu geometrii talii (Gilded).
+
+Najbliższy problem techniczny do wdrożenia to:
+*   **TV-008:** Wycięcie (crop) i prostowanie pojedynczej karty ze stołu do kanonicznych wymiarów talii Gilded.
 
 ---
 

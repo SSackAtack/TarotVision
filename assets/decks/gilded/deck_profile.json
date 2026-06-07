@@ -1,0 +1,13 @@
+{
+  "deck_id": "gilded",
+  "deck_name": "Gilded",
+  "geometry_source": "auto_detected_from_Gilded_38.png",
+  "reference_scan_dir": "assets/decks/gilded/reference_scans",
+  "card_width_px": 600,
+  "card_height_px": 1032,
+  "aspect_ratio_height_to_width": 1.72,
+  "canonical_width_px": 600,
+  "canonical_height_px": 1032,
+  "scan_filename_semantics": "ignored_for_now",
+  "notes": "Card names are not trusted at this stage. The first scan is used only for geometry and frame fitting."
+}

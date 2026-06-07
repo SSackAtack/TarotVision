@@ -375,11 +375,13 @@ def run_diff_detection():
                                 else:
                                     print(f"[TableState] Dodano {added_card.card_instance_id}: unrecognized / {added_card.reference_id}")
                                     
-                            # Dopiero po udanym cropie, rozpoznaniu, dodaniu do TableState i table_state.save()
-                            # akceptujemy aktualny stan stołu jako poprzedni
-                            snapshot_manager.accept_current_as_previous()
-                            print(f"-> Sukces! Zapisano obraz wynikowy w: {output_dir / 'table_detected_diff.png'}")
-                            print(f"-> Zapisano JSON w: {output_dir / 'detected_cards.json'}")
+                                # Dopiero po udanym cropie, rozpoznaniu, dodaniu do TableState i table_state.save()
+                                # akceptujemy aktualny stan stołu jako poprzedni
+                                snapshot_manager.accept_current_as_previous()
+                                print(f"-> Sukces! Zapisano obraz wynikowy w: {output_dir / 'table_detected_diff.png'}")
+                                print(f"-> Zapisano JSON w: {output_dir / 'detected_cards.json'}")
+                            else:
+                                print("-> Odrzucono: TableState odrzucił kartę (duplikat lub zbyt blisko innej). Pomijam rolling snapshot.")
                             
                         else:
                             # Crop się nie powiódł

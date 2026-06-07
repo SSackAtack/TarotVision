@@ -46,9 +46,20 @@ Skrypt `validate_card_mapping.py` odpowiada za weryfikację poprawności pliku m
 
 ## 7. Wyniki realizacji
 Zaimplementowano mapowanie semantyczne dla talii `gilded`.
-- Stworzono plik `assets/decks/gilded/card_mapping.json` obejmujący 79 rekordów. 9 kart oraz rewers zostały zidentyfikowane wizualnie i w pełni zdefiniowane, pozostałe 69 kart oznaczono jako `unknown` z confidence `unknown`. Wszystkie rekordy mają flagę `needs_human_review: true`.
+- Stworzono plik `assets/decks/gilded/card_mapping.json` obejmujący 79 rekordów. Wszystkie 78 kart oraz rewers zostały zidentyfikowane i w pełni zdefiniowane.
 - Stworzono `CardMappingLoader` wczytujący plik mapowania i `enrich_recognition_with_card_mapping`, które dekoruje wyniki dopasowania o metadane karty/rewersu oraz status mapowania (`mapped`, `deck_back`, `unmapped_reference_id`, `missing_mapping`).
 - Zaimplementowano CLI `validate_card_mapping.py`, który weryfikuje strukturę JSON, unikalność identyfikatorów, obecność wymaganych pól oraz dozwolone wartości dla enumów. Walidacja talii `gilded` przebiegła pomyślnie.
 - Zintegrowano proces dekorowania z głównym skryptem `test_card_image_recognition.py`. Wypisuje on teraz czytelne polskie nazwy kart (np. *Karta: The Sun*, *Karta: The Magician*), a także prawidłowo raportuje rewersy.
 - Uruchomiono i zaliczono unit testy (`test_card_mapping.py`) oraz regresyjne testy całego systemu.
+
+## Human Review Finalization
+
+Operator przeprowadził ręczną inspekcję wszystkich 79 wpisów referencyjnych talii Gilded i potwierdził poprawność mapowania.
+
+W wyniku finalizacji:
+- `review_status` ustawiono na `human_verified`,
+- wszystkie rekordy mają `needs_human_review = false`,
+- rewers talii pozostaje oznaczony jako `deck_back`,
+- mapowanie jest gotowe do użycia przez kolejne moduły systemu.
+
 

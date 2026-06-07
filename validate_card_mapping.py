@@ -33,6 +33,7 @@ def validate_mapping(deck_id: str, base_decks_dir: str = "assets/decks") -> bool
     # 2. Weryfikacja głównych pól
     errors = 0
     warnings = 0
+    review_status = manifest.get("review_status", "needs_human_review")
     
     if manifest.get("deck_id") != deck_id:
         logger.error(f"deck_id w pliku ({manifest.get('deck_id')}) nie zgadza się z oczekiwanym ({deck_id}).")
@@ -151,7 +152,7 @@ def validate_mapping(deck_id: str, base_decks_dir: str = "assets/decks") -> bool
         elif entry_type == "unknown":
             mapped_unknowns += 1
             
-        if card.get("needs_human_review") is not True:
+        if review_status != "human_verified" and card.get("needs_human_review") is not True:
             logger.warning(f"Wpis '{ref_id}': pole 'needs_human_review' powinno być ustawione na true do czasu weryfikacji.")
             warnings += 1
 

@@ -3,7 +3,7 @@
   "mapping_version": "card_mapping_v1",
   "language": "en",
   "created_by": "gemini_visual_review",
-  "review_status": "needs_human_review",
+  "review_status": "human_verified",
   "cards": [
     {
       "reference_id": "Gilded_00",
@@ -16,7 +16,7 @@
       "rank": null,
       "is_deck_back": false,
       "mapping_confidence": "high",
-      "needs_human_review": true,
+      "needs_human_review": false,
       "notes": "Moc VIII"
     },
     {
@@ -30,7 +30,7 @@
       "rank": "queen",
       "is_deck_back": false,
       "mapping_confidence": "high",
-      "needs_human_review": true,
+      "needs_human_review": false,
       "notes": "Królowa Mieczy"
     },
     {
@@ -44,7 +44,7 @@
       "rank": "page",
       "is_deck_back": false,
       "mapping_confidence": "high",
-      "needs_human_review": true,
+      "needs_human_review": false,
       "notes": "Giermek Monet"
     },
     {
@@ -58,7 +58,7 @@
       "rank": "eight",
       "is_deck_back": false,
       "mapping_confidence": "high",
-      "needs_human_review": true,
+      "needs_human_review": false,
       "notes": "Ósemka Buław"
     },
     {
@@ -72,7 +72,7 @@
       "rank": "knight",
       "is_deck_back": false,
       "mapping_confidence": "high",
-      "needs_human_review": true,
+      "needs_human_review": false,
       "notes": "Rycerz Monet"
     },
     {
@@ -86,7 +86,7 @@
       "rank": "king",
       "is_deck_back": false,
       "mapping_confidence": "high",
-      "needs_human_review": true,
+      "needs_human_review": false,
       "notes": "Król Mieczy"
     },
     {
@@ -100,7 +100,7 @@
       "rank": null,
       "is_deck_back": false,
       "mapping_confidence": "high",
-      "needs_human_review": true,
+      "needs_human_review": false,
       "notes": "Umiarkowanie XIV"
     },
     {
@@ -114,7 +114,7 @@
       "rank": "three",
       "is_deck_back": false,
       "mapping_confidence": "high",
-      "needs_human_review": true,
+      "needs_human_review": false,
       "notes": "Trójka Mieczy"
     },
     {
@@ -128,7 +128,7 @@
       "rank": "five",
       "is_deck_back": false,
       "mapping_confidence": "high",
-      "needs_human_review": true,
+      "needs_human_review": false,
       "notes": "Piątka Kielichów"
     },
     {
@@ -142,7 +142,7 @@
       "rank": "page",
       "is_deck_back": false,
       "mapping_confidence": "high",
-      "needs_human_review": true,
+      "needs_human_review": false,
       "notes": "Giermek Mieczy"
     },
     {
@@ -156,7 +156,7 @@
       "rank": "four",
       "is_deck_back": false,
       "mapping_confidence": "high",
-      "needs_human_review": true,
+      "needs_human_review": false,
       "notes": "Czwórka Buław"
     },
     {
@@ -170,7 +170,7 @@
       "rank": "eight",
       "is_deck_back": false,
       "mapping_confidence": "high",
-      "needs_human_review": true,
+      "needs_human_review": false,
       "notes": "Osemka Monet"
     },
     {
@@ -184,7 +184,7 @@
       "rank": null,
       "is_deck_back": false,
       "mapping_confidence": "high",
-      "needs_human_review": true,
+      "needs_human_review": false,
       "notes": "Arcykapłan"
     },
     {
@@ -198,7 +198,7 @@
       "rank": null,
       "is_deck_back": false,
       "mapping_confidence": "high",
-      "needs_human_review": true,
+      "needs_human_review": false,
       "notes": "Głupiec"
     },
     {
@@ -212,7 +212,7 @@
       "rank": "nine",
       "is_deck_back": false,
       "mapping_confidence": "high",
-      "needs_human_review": true,
+      "needs_human_review": false,
       "notes": "Dziewiątka Kielichów"
     },
     {
@@ -226,7 +226,7 @@
       "rank": null,
       "is_deck_back": false,
       "mapping_confidence": "high",
-      "needs_human_review": true,
+      "needs_human_review": false,
       "notes": "Słońce"
     },
     {
@@ -240,7 +240,7 @@
       "rank": "ace",
       "is_deck_back": false,
       "mapping_confidence": "high",
-      "needs_human_review": true,
+      "needs_human_review": false,
       "notes": "As Kielichów"
     },
     {
@@ -254,7 +254,7 @@
       "rank": "seven",
       "is_deck_back": false,
       "mapping_confidence": "high",
-      "needs_human_review": true,
+      "needs_human_review": false,
       "notes": "Siódemka Buław"
     },
     {
@@ -268,7 +268,7 @@
       "rank": "two",
       "is_deck_back": false,
       "mapping_confidence": "high",
-      "needs_human_review": true,
+      "needs_human_review": false,
       "notes": "Dwójka Mieczy"
     },
     {
@@ -282,7 +282,7 @@
       "rank": "six",
       "is_deck_back": false,
       "mapping_confidence": "high",
-      "needs_human_review": true,
+      "needs_human_review": false,
       "notes": "Szóstka Mieczy"
     },
     {
@@ -296,7 +296,7 @@
       "rank": "four",
       "is_deck_back": false,
       "mapping_confidence": "high",
-      "needs_human_review": true,
+      "needs_human_review": false,
       "notes": "Czwórka Mieczy"
     },
     {
@@ -310,7 +310,7 @@
       "rank": "eight",
       "is_deck_back": false,
       "mapping_confidence": "high",
-      "needs_human_review": true,
+      "needs_human_review": false,
       "notes": "Ósemka Kielichów"
     },
     {
@@ -324,7 +324,7 @@
       "rank": null,
       "is_deck_back": false,
       "mapping_confidence": "high",
-      "needs_human_review": true,
+      "needs_human_review": false,
       "notes": "Śmierć"
     },
     {
@@ -338,7 +338,7 @@
       "rank": null,
       "is_deck_back": false,
       "mapping_confidence": "high",
-      "needs_human_review": true,
+      "needs_human_review": false,
       "notes": "Kochankowie"
     },
     {
@@ -352,7 +352,7 @@
       "rank": null,
       "is_deck_back": false,
       "mapping_confidence": "high",
-      "needs_human_review": true,
+      "needs_human_review": false,
       "notes": "Pustelnik"
     },
     {
@@ -366,7 +366,7 @@
       "rank": "queen",
       "is_deck_back": false,
       "mapping_confidence": "high",
-      "needs_human_review": true,
+      "needs_human_review": false,
       "notes": "Królowa Kielichów"
     },
     {
@@ -380,7 +380,7 @@
       "rank": "queen",
       "is_deck_back": false,
       "mapping_confidence": "high",
-      "needs_human_review": true,
+      "needs_human_review": false,
       "notes": "Królowa Buław"
     },
     {
@@ -394,7 +394,7 @@
       "rank": "knight",
       "is_deck_back": false,
       "mapping_confidence": "high",
-      "needs_human_review": true,
+      "needs_human_review": false,
       "notes": "Rycerz Mieczy"
     },
     {
@@ -408,7 +408,7 @@
       "rank": "eight",
       "is_deck_back": false,
       "mapping_confidence": "high",
-      "needs_human_review": true,
+      "needs_human_review": false,
       "notes": "Ósemka Mieczy"
     },
     {
@@ -422,7 +422,7 @@
       "rank": "two",
       "is_deck_back": false,
       "mapping_confidence": "high",
-      "needs_human_review": true,
+      "needs_human_review": false,
       "notes": "Dwójka Monet"
     },
     {
@@ -436,7 +436,7 @@
       "rank": null,
       "is_deck_back": false,
       "mapping_confidence": "high",
-      "needs_human_review": true,
+      "needs_human_review": false,
       "notes": "Arcykapłanka"
     },
     {
@@ -450,7 +450,7 @@
       "rank": "ace",
       "is_deck_back": false,
       "mapping_confidence": "high",
-      "needs_human_review": true,
+      "needs_human_review": false,
       "notes": "As Mieczy"
     },
     {
@@ -464,7 +464,7 @@
       "rank": "five",
       "is_deck_back": false,
       "mapping_confidence": "high",
-      "needs_human_review": true,
+      "needs_human_review": false,
       "notes": "Piątka Buław"
     },
     {
@@ -478,7 +478,7 @@
       "rank": "three",
       "is_deck_back": false,
       "mapping_confidence": "high",
-      "needs_human_review": true,
+      "needs_human_review": false,
       "notes": "Trójka Buław"
     },
     {
@@ -492,7 +492,7 @@
       "rank": null,
       "is_deck_back": false,
       "mapping_confidence": "high",
-      "needs_human_review": true,
+      "needs_human_review": false,
       "notes": "Gwiazda"
     },
     {
@@ -506,7 +506,7 @@
       "rank": "three",
       "is_deck_back": false,
       "mapping_confidence": "high",
-      "needs_human_review": true,
+      "needs_human_review": false,
       "notes": "Trójka Kielichów"
     },
     {
@@ -520,7 +520,7 @@
       "rank": "ten",
       "is_deck_back": false,
       "mapping_confidence": "high",
-      "needs_human_review": true,
+      "needs_human_review": false,
       "notes": "Dziesiątka Mieczy"
     },
     {
@@ -534,7 +534,7 @@
       "rank": "three",
       "is_deck_back": false,
       "mapping_confidence": "high",
-      "needs_human_review": true,
+      "needs_human_review": false,
       "notes": "Trójka Monet"
     },
     {
@@ -548,7 +548,7 @@
       "rank": null,
       "is_deck_back": false,
       "mapping_confidence": "high",
-      "needs_human_review": true,
+      "needs_human_review": false,
       "notes": "Mag I"
     },
     {
@@ -562,7 +562,7 @@
       "rank": "ten",
       "is_deck_back": false,
       "mapping_confidence": "high",
-      "needs_human_review": true,
+      "needs_human_review": false,
       "notes": "Dziesiątka Buław"
     },
     {
@@ -576,7 +576,7 @@
       "rank": "ace",
       "is_deck_back": false,
       "mapping_confidence": "high",
-      "needs_human_review": true,
+      "needs_human_review": false,
       "notes": "As Buław"
     },
     {
@@ -590,7 +590,7 @@
       "rank": null,
       "is_deck_back": false,
       "mapping_confidence": "high",
-      "needs_human_review": true,
+      "needs_human_review": false,
       "notes": "Diabeł"
     },
     {
@@ -604,7 +604,7 @@
       "rank": "five",
       "is_deck_back": false,
       "mapping_confidence": "high",
-      "needs_human_review": true,
+      "needs_human_review": false,
       "notes": "Piątka Monet"
     },
     {
@@ -618,7 +618,7 @@
       "rank": "king",
       "is_deck_back": false,
       "mapping_confidence": "high",
-      "needs_human_review": true,
+      "needs_human_review": false,
       "notes": "Król Monet"
     },
     {
@@ -632,7 +632,7 @@
       "rank": "knight",
       "is_deck_back": false,
       "mapping_confidence": "high",
-      "needs_human_review": true,
+      "needs_human_review": false,
       "notes": "Rycerz Kielichów"
     },
     {
@@ -646,7 +646,7 @@
       "rank": null,
       "is_deck_back": false,
       "mapping_confidence": "high",
-      "needs_human_review": true,
+      "needs_human_review": false,
       "notes": "Sprawiedliwość"
     },
     {
@@ -660,7 +660,7 @@
       "rank": "page",
       "is_deck_back": false,
       "mapping_confidence": "high",
-      "needs_human_review": true,
+      "needs_human_review": false,
       "notes": "Giermek Buław"
     },
     {
@@ -674,7 +674,7 @@
       "rank": "four",
       "is_deck_back": false,
       "mapping_confidence": "high",
-      "needs_human_review": true,
+      "needs_human_review": false,
       "notes": "Czwórka Kielichów"
     },
     {
@@ -688,7 +688,7 @@
       "rank": null,
       "is_deck_back": false,
       "mapping_confidence": "high",
-      "needs_human_review": true,
+      "needs_human_review": false,
       "notes": "Rydwan"
     },
     {
@@ -702,7 +702,7 @@
       "rank": "nine",
       "is_deck_back": false,
       "mapping_confidence": "high",
-      "needs_human_review": true,
+      "needs_human_review": false,
       "notes": "Dziewiątka Buław"
     },
     {
@@ -716,7 +716,7 @@
       "rank": null,
       "is_deck_back": false,
       "mapping_confidence": "high",
-      "needs_human_review": true,
+      "needs_human_review": false,
       "notes": "Wisielec"
     },
     {
@@ -730,7 +730,7 @@
       "rank": "seven",
       "is_deck_back": false,
       "mapping_confidence": "high",
-      "needs_human_review": true,
+      "needs_human_review": false,
       "notes": "Siódemka Monet"
     },
     {
@@ -744,7 +744,7 @@
       "rank": "ten",
       "is_deck_back": false,
       "mapping_confidence": "high",
-      "needs_human_review": true,
+      "needs_human_review": false,
       "notes": "Dziesiątka Monet"
     },
     {
@@ -758,7 +758,7 @@
       "rank": "nine",
       "is_deck_back": false,
       "mapping_confidence": "high",
-      "needs_human_review": true,
+      "needs_human_review": false,
       "notes": "Dziewiątka Mieczy"
     },
     {
@@ -772,7 +772,7 @@
       "rank": "ten",
       "is_deck_back": false,
       "mapping_confidence": "high",
-      "needs_human_review": true,
+      "needs_human_review": false,
       "notes": "Dziesiątka Kielichów"
     },
     {
@@ -786,7 +786,7 @@
       "rank": "seven",
       "is_deck_back": false,
       "mapping_confidence": "high",
-      "needs_human_review": true,
+      "needs_human_review": false,
       "notes": "Siódemka Mieczy"
     },
     {
@@ -800,7 +800,7 @@
       "rank": "queen",
       "is_deck_back": false,
       "mapping_confidence": "high",
-      "needs_human_review": true,
+      "needs_human_review": false,
       "notes": "Królowa Monet"
     },
     {
@@ -814,7 +814,7 @@
       "rank": "six",
       "is_deck_back": false,
       "mapping_confidence": "high",
-      "needs_human_review": true,
+      "needs_human_review": false,
       "notes": "Szóstka Monet"
     },
     {
@@ -828,7 +828,7 @@
       "rank": "six",
       "is_deck_back": false,
       "mapping_confidence": "high",
-      "needs_human_review": true,
+      "needs_human_review": false,
       "notes": "Szóstka Kielichów"
     },
     {
@@ -842,7 +842,7 @@
       "rank": "nine",
       "is_deck_back": false,
       "mapping_confidence": "high",
-      "needs_human_review": true,
+      "needs_human_review": false,
       "notes": "Dziewiątka Monet"
     },
     {
@@ -856,7 +856,7 @@
       "rank": "king",
       "is_deck_back": false,
       "mapping_confidence": "high",
-      "needs_human_review": true,
+      "needs_human_review": false,
       "notes": "Król Buław"
     },
     {
@@ -870,7 +870,7 @@
       "rank": "ace",
       "is_deck_back": false,
       "mapping_confidence": "high",
-      "needs_human_review": true,
+      "needs_human_review": false,
       "notes": "As Monet"
     },
     {
@@ -884,7 +884,7 @@
       "rank": "two",
       "is_deck_back": false,
       "mapping_confidence": "high",
-      "needs_human_review": true,
+      "needs_human_review": false,
       "notes": "Dwójka Kielichów"
     },
     {
@@ -898,7 +898,7 @@
       "rank": "two",
       "is_deck_back": false,
       "mapping_confidence": "high",
-      "needs_human_review": true,
+      "needs_human_review": false,
       "notes": "Dwójka Buław"
     },
     {
@@ -912,7 +912,7 @@
       "rank": "five",
       "is_deck_back": false,
       "mapping_confidence": "high",
-      "needs_human_review": true,
+      "needs_human_review": false,
       "notes": "Piątka Mieczy"
     },
     {
@@ -926,7 +926,7 @@
       "rank": "king",
       "is_deck_back": false,
       "mapping_confidence": "high",
-      "needs_human_review": true,
+      "needs_human_review": false,
       "notes": "Król Kielichów"
     },
     {
@@ -940,7 +940,7 @@
       "rank": null,
       "is_deck_back": false,
       "mapping_confidence": "high",
-      "needs_human_review": true,
+      "needs_human_review": false,
       "notes": "Cesarzowa"
     },
     {
@@ -954,7 +954,7 @@
       "rank": null,
       "is_deck_back": false,
       "mapping_confidence": "high",
-      "needs_human_review": true,
+      "needs_human_review": false,
       "notes": "Cesarz"
     },
     {
@@ -968,7 +968,7 @@
       "rank": "four",
       "is_deck_back": false,
       "mapping_confidence": "high",
-      "needs_human_review": true,
+      "needs_human_review": false,
       "notes": "Czwórka Monet"
     },
     {
@@ -982,7 +982,7 @@
       "rank": null,
       "is_deck_back": false,
       "mapping_confidence": "high",
-      "needs_human_review": true,
+      "needs_human_review": false,
       "notes": "Wieża"
     },
     {
@@ -996,7 +996,7 @@
       "rank": null,
       "is_deck_back": false,
       "mapping_confidence": "high",
-      "needs_human_review": true,
+      "needs_human_review": false,
       "notes": "Koło Fortuny"
     },
     {
@@ -1010,7 +1010,7 @@
       "rank": null,
       "is_deck_back": false,
       "mapping_confidence": "high",
-      "needs_human_review": true,
+      "needs_human_review": false,
       "notes": "Świat"
     },
     {
@@ -1024,7 +1024,7 @@
       "rank": null,
       "is_deck_back": false,
       "mapping_confidence": "high",
-      "needs_human_review": true,
+      "needs_human_review": false,
       "notes": "Księżyc"
     },
     {
@@ -1038,7 +1038,7 @@
       "rank": null,
       "is_deck_back": false,
       "mapping_confidence": "high",
-      "needs_human_review": true,
+      "needs_human_review": false,
       "notes": "Słońce XIX"
     },
     {
@@ -1052,7 +1052,7 @@
       "rank": null,
       "is_deck_back": false,
       "mapping_confidence": "high",
-      "needs_human_review": true,
+      "needs_human_review": false,
       "notes": "Sąd Ostateczny"
     },
     {
@@ -1066,7 +1066,7 @@
       "rank": "page",
       "is_deck_back": false,
       "mapping_confidence": "high",
-      "needs_human_review": true,
+      "needs_human_review": false,
       "notes": "Giermek Kielichów"
     },
     {
@@ -1080,7 +1080,7 @@
       "rank": "six",
       "is_deck_back": false,
       "mapping_confidence": "high",
-      "needs_human_review": true,
+      "needs_human_review": false,
       "notes": "Szóstka Buław"
     },
     {
@@ -1094,7 +1094,7 @@
       "rank": "knight",
       "is_deck_back": false,
       "mapping_confidence": "high",
-      "needs_human_review": true,
+      "needs_human_review": false,
       "notes": "Rycerz Buław"
     },
     {
@@ -1108,8 +1108,11 @@
       "rank": null,
       "is_deck_back": true,
       "mapping_confidence": "high",
-      "needs_human_review": true,
+      "needs_human_review": false,
       "notes": "Rewers talii Gilded"
     }
-  ]
+  ],
+  "reviewed_by": "operator",
+  "review_method": "manual_visual_inspection",
+  "review_notes": "All Gilded deck reference scans were manually inspected and confirmed by the operator."
 }

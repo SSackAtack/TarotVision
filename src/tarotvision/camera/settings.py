@@ -53,7 +53,7 @@ class CameraSettingsManager:
             "auto_white_balance": (cv2.CAP_PROP_AUTO_WB, 0.0 if not lock_settings.get("auto_white_balance", True) else 1.0),
         }
 
-        # Obsługa właściwości blokad
+        # Obsługa właściwości blokad (typu auto/manual)
         for name, (prop, exp_val) in prop_mapping.items():
             requested[name] = exp_val
             try:
@@ -65,13 +65,14 @@ class CameraSettingsManager:
                     continue
 
                 # Próba ustawienia
-                set_success = cap.set(prop, exp_val)
+                cap.set(prop, exp_val)
                 actual = cap.get(prop)
 
                 if actual == -1.0:
                     status[name] = "unsupported"
                     readback[name] = "unsupported"
-                elif abs(actual - exp_val) < 1e-4 or set_success:
+                elif abs(actual - exp_val) < 1e-4:
+                    # Rygorystyczne sprawdzenie: wartość odczytana musi odpowiadać oczekiwanej
                     status[name] = "applied"
                     readback[name] = actual
                 else:
@@ -102,7 +103,11 @@ class CameraSettingsManager:
                     if actual == -1.0:
                         status[name] = "unsupported"
                         readback[name] = "unsupported"
-                    elif abs(actual - val) < 1e-4 or set_success:
+                    elif set_success and (abs(actual - val) < 1e-4 or (val != 0 and abs(actual - val) / abs(val) < 0.1)):
+                        # Pozwalamy na tolerancję 10% na zaokrąglenia sprzętowe wartości manualnych
+                        status[name] = "applied"
+                        readback[name] = actual
+                    elif abs(actual - val) < 1e-4:
                         status[name] = "applied"
                         readback[name] = actual
                     else:

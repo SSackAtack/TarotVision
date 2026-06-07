@@ -30,21 +30,21 @@ Różne kamery i sterowniki (zwłaszcza przy użyciu OpenCV na Windows z DirectS
 - Skrypt testowy preflightu live `test_camera_preflight.py`.
 
 ## 6. Wyniki Realizacji i Weryfikacji Live
-Preflight został pomyślnie uruchomiony na kamerze fizycznej **AnkerWork C310 Webcam**.
+Preflight został pomyślnie uruchomiony na kamerze fizycznej **AnkerWork C310 Webcam** po wdrożeniu poprawionej, rygorystycznej logiki weryfikacji.
 
 ### Wyniki metryk jakościowych:
-- `brightness_mean`: **82.28 px** (w przedziale [50, 190] - OK)
-- `brightness_std`: **45.58 px** (OK)
-- `laplacian_variance`: **367.7** (wysoka ostrość, próg min 80 - OK)
-- `overexposed_ratio`: **0.05%** (próg max 2% - OK)
-- `underexposed_ratio`: **3.74%** (próg max 5% - OK)
-- `frame_delta_mean`: **3.36 px** (próg max 3.0 px, nieznaczne przekroczenie ze względu na szum sensora - WARNING)
-- **Status ogólny jakości:** **WARNING**
+- `brightness_mean`: **77.19 px** (w przedziale [50, 190] - OK)
+- `brightness_std`: **43.86 px** (OK)
+- `laplacian_variance`: **300.76** (wysoka ostrość, próg min 80 - OK)
+- `overexposed_ratio`: **0.03%** (próg max 2% - OK)
+- `underexposed_ratio`: **3.15%** (próg max 5% - OK)
+- `frame_delta_mean`: **2.27 px** (próg max 3.0 px - OK)
+- **Status ogólny jakości:** **ACCEPTED**
 
-### Statusy blokad parametrów (readback):
-- `auto_focus`: **APPLIED** (odczytana wartość: `2.0` - autofokus pomyślnie wyłączony)
-- `auto_white_balance`: **APPLIED** (odczytana wartość: `0.0` - automatyczny balans bieli wyłączony)
-- `auto_exposure`: **UNSUPPORTED** (OpenCV/DirectShow nie obsługuje programowej blokady ekspozycji na tym sterowniku)
+### Precyzyjny status blokad parametrów (readback):
+- `auto_white_balance`: **APPLIED** (żądanego stanu `0.0` odpowiada odczytana wartość: `0.0` - automatyczny balans bieli został prawidłowo wyłączony).
+- `auto_focus`: **NOT_APPLIED** (żądanego stanu `0.0` nie odpowiada odczytana wartość: `2.0` - sterownik zaakceptował polecenie `cap.set`, ale rzeczywisty stan nie uległ zmianie. Wyeliminowano fałszywy sukces).
+- `auto_exposure`: **UNSUPPORTED** (OpenCV/DirectShow nie obsługuje programowej blokady ekspozycji, odczytana wartość: `unsupported`).
 
 Profil sesji kamery został pomyślnie zapisany w: `output/sessions/current/camera_profile.json`.
 

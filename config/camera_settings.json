@@ -1,0 +1,28 @@
+{
+  "camera_profile_name": "ankerwork_c310_default",
+  "resolution": {
+    "width": 1920,
+    "height": 1080
+  },
+  "lock_settings": {
+    "auto_exposure": false,
+    "auto_focus": false,
+    "auto_white_balance": false
+  },
+  "manual_values": {
+    "exposure": null,
+    "focus": null,
+    "white_balance_temperature": null,
+    "brightness": null,
+    "contrast": null,
+    "gain": null
+  },
+  "quality_thresholds": {
+    "brightness_mean_min": 50,
+    "brightness_mean_max": 190,
+    "laplacian_variance_min": 80,
+    "overexposed_ratio_max": 0.02,
+    "underexposed_ratio_max": 0.05,
+    "frame_delta_mean_max": 3.0
+  }
+}

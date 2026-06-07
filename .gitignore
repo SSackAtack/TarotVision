@@ -9,3 +9,4 @@ output/
 *.json
 !requirements.txt
 !tests/assets/*.png
+!config/camera_settings.json

@@ -16,6 +16,7 @@ from tarotvision.storage.snapshots import SnapshotManager
 from tarotvision.vision.perspective import TablePerspectiveCorrector
 from tarotvision.vision.diff import DiffDetector
 from tarotvision.vision.refinery import CardRefinery
+from tarotvision.decks.profile import DeckProfile
 
 def run_diff_detection():
     print("--- TarotVision: Test Detekcji Kart za pomocą Różnicy Snapshotów ---")
@@ -24,6 +25,13 @@ def run_diff_detection():
     output_dir = Path("output/processed")
     output_dir.mkdir(parents=True, exist_ok=True)
     
+    # Wczytanie profilu talii (Gilded)
+    try:
+        deck_profile = DeckProfile.load("assets/decks/gilded/deck_profile.json")
+    except Exception as e:
+        print(f"Ostrzeżenie: Nie udało się wczytać profilu talii: {e}")
+        deck_profile = None
+        
     corrector = TablePerspectiveCorrector()
     motion_detector = MotionDetector(threshold=1.2, stabilization_time=0.5)
     snapshot_manager = SnapshotManager(base_dir="output/sessions/current")
@@ -175,7 +183,7 @@ def run_diff_detection():
                 
                 if roi_rect is not None:
                     # Precyzyjne dopasowanie karty w ROI
-                    card_data = refinery.refine_card(warped, roi_rect)
+                    card_data = refinery.refine_card(warped, roi_rect, diff_mask=debug_mask, deck_profile=deck_profile)
                     
                     if card_data is not None:
                         # Przygotowanie metadanych JSON

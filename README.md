@@ -54,11 +54,11 @@ Aby wyeliminować zakłócenia takie jak faktura stołu, cienie czy odblaski św
 ---
 
 ## Następny Krok Techniczny
-
-Pipeline detekcji, korekcji perspektywy, rolling comparison, stabilizacji, modelowej rafinacji geometrycznej (TV-008), automatycznego wycinania/prostowania (TV-009) oraz realnej walidacji w warunkach live (TV-010) został w pełni przetestowany i zatwierdzony. Wszystkie wygenerowane kropy mają właściwe wymiary kanoniczne (600x1032 px) i są gotowe do analizy.
-
+ 
+Moduł rozpoznawania wizualnego kart (`tarotvision.recognition`) oparty na podobieństwie całych obrazów (visual similarity) i weryfikacji obrotu o 180° został wdrożony i pomyślnie przetestowany (TV-011) na zapisanych cropach z sesji live. Działa ładowanie skanów referencyjnych (`ReferenceLoader`) i dopasowanie (`ImageMatcher`).
+ 
 Najbliższy problem techniczny do wdrożenia to:
-*   **TV-011:** Rozpoznawanie obrazowe karty na podstawie wygenerowanego cropa i bazy skanów referencyjnych (z dopasowaniem szablonów).
+*   **TV-012:** Wdrożenie mapowania semantycznego (id skanów -> rzeczywiste nazwy kart) oraz rozszerzenie bazy referencyjnej o pełną talię.
 
 ---
 

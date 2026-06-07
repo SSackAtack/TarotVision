@@ -55,10 +55,10 @@ Aby wyeliminować zakłócenia takie jak faktura stołu, cienie czy odblaski św
 
 ## Następny Krok Techniczny
 
-MVP 1 wraz z obsługą geometrii wielu talii (TV-008) zostało w pełni zintegrowane. System stabilnie dopasowuje pełną ramkę karty na podstawie różnic snapshotów, dynamicznie dobiera profil geometryczny aktywnej talii (Gilded) i wykrywa potencjalne niejednoznaczności.
+MVP 1 wraz z obsługą geometrii wielu talii (TV-008) oraz wycinaniem i prostowaniem perspektywicznym kart (TV-009) zostało w pełni zintegrowane. System stabilnie dopasowuje pełną ramkę karty na podstawie różnic snapshotów, dynamicznie dobiera profil geometryczny aktywnej talii (Gilded), wykrywa potencjalne niejednoznaczności i generuje pionowy crop w kanonicznym formacie.
 
 Najbliższy problem techniczny do wdrożenia to:
-*   **TV-009:** Wycięcie (crop) i prostowanie pojedynczej karty ze stołu do jej kanonicznych wymiarów (zdefiniowanych w wybranym profilu talii).
+*   **TV-010:** Przygotowanie rozpoznawania obrazowego karty na podstawie cropa i skanów referencyjnych.
 
 ---
 

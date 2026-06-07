@@ -18,6 +18,12 @@ from tarotvision.vision.diff import DiffDetector
 from tarotvision.vision.refinery import CardRefinery
 from tarotvision.decks.profile import DeckProfile
 from tarotvision.vision.cropper import CardCropper
+from tarotvision.recognition.reference_loader import ReferenceLoader
+from tarotvision.recognition.image_matcher import ImageMatcher
+from tarotvision.recognition.index_loader import ReferenceIndexLoader
+from tarotvision.recognition.indexed_matcher import IndexedImageMatcher
+from tarotvision.recognition.card_mapping import enrich_recognition_with_card_mapping
+from tarotvision.state.table_state import TableState
 
 def run_diff_detection():
     print("--- TarotVision: Test Detekcji Kart za pomocą Różnicy Snapshotów ---")
@@ -40,6 +46,33 @@ def run_diff_detection():
     diff_detector = DiffDetector(diff_threshold=25, min_area=10000, max_area=150000)
     refinery = CardRefinery(margin=20)
     cropper = CardCropper()
+    
+    # Inicjalizacja TableState
+    table_state = TableState(session_dir="output/sessions/current")
+    table_state.load()
+    
+    # Inicjalizacja matchera kart
+    deck_id = "gilded"
+    loader = ReferenceLoader()
+    references = loader.load_references(deck_id)
+    
+    profile_path = Path("output/sessions/current/session_color_profile.json")
+    profile = None
+    if profile_path.exists():
+        try:
+            with open(profile_path, "r", encoding="utf-8") as f:
+                profile = json.load(f)
+        except Exception:
+            pass
+            
+    index_loader = ReferenceIndexLoader()
+    index = index_loader.load_index(deck_id)
+    if index:
+        matcher = IndexedImageMatcher(index)
+        use_indexed = True
+    else:
+        matcher = ImageMatcher(session_color_profile=profile)
+        use_indexed = False
     
     # Inicjalizacja kamery (CameraCapture automatycznie wykryje sprawny port nie-czarny)
     print("Inicjalizacja kamery...")
@@ -232,64 +265,136 @@ def run_diff_detection():
                     card_data = refinery.refine_card(warped, roi_rect, diff_mask=debug_mask, deck_profile=deck_profile)
                     
                     if card_data is not None:
-                        # Przygotowanie metadanych JSON
-                        cards_metadata = [{
-                            "id": "card_001",
-                            "name": None,
-                            "confidence": None,
-                            "position": {
-                                "x": card_data["center"][0],
-                                "y": card_data["center"][1]
-                            },
-                            "size": {
-                                "width": card_data["size"][0] if card_data["size"][0] < card_data["size"][1] else card_data["size"][1],
-                                "height": card_data["size"][1] if card_data["size"][0] < card_data["size"][1] else card_data["size"][0]
-                            },
-                            "angle": round(card_data["angle"], 2),
-                            "reversed": None,
-                            "corners": card_data["corners"]
-                        }]
-                        
-                        # Zapis metadanych JSON
-                        with open(output_dir / "detected_cards.json", "w", encoding="utf-8") as f:
-                            json.dump(cards_metadata, f, indent=2, ensure_ascii=False)
-
-                        # Dopiero po poprawnym zapisie wyniku akceptujemy aktualny stan stołu.
-                        snapshot_manager.accept_current_as_previous()
-                            
-                        # Narysowanie zielonego prostokąta
-                        box = np.intp(card_data["corners"])
-                        cv2.drawContours(display_warped, [box], -1, (0, 255, 0), 3)
-                        cv2.circle(display_warped, card_data["center"], 7, (0, 0, 255), -1)
-                        cv2.putText(display_warped, "card_001", (card_data["center"][0] - 25, card_data["center"][1] - 15),
-                                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
-                                    
-                        # Zapisz obraz wynikowy
-                        cv2.imwrite(str(output_dir / "table_detected_diff.png"), display_warped)
-                        record_dir = diagnostics.record_attempt(
-                            previous=snapshot_previous,
-                            current=snapshot_current,
-                            mask=debug_mask,
-                            result_image=display_warped,
-                            metadata=cards_metadata,
-                            status="accepted",
-                        )
-                        
                         # Generowanie i zapis cropa karty
                         crops_dir = Path("output/processed/crops")
                         crops_dir.mkdir(parents=True, exist_ok=True)
                         crop_res = cropper.crop_card(warped, card_data, deck_profile)
+                        
                         if crop_res and crop_res["success"]:
+                            # Przygotowanie metadanych JSON
+                            cards_metadata = [{
+                                "id": "card_001",
+                                "name": None,
+                                "confidence": None,
+                                "position": {
+                                    "x": card_data["center"][0],
+                                    "y": card_data["center"][1]
+                                },
+                                "size": {
+                                    "width": card_data["size"][0] if card_data["size"][0] < card_data["size"][1] else card_data["size"][1],
+                                    "height": card_data["size"][1] if card_data["size"][0] < card_data["size"][1] else card_data["size"][0]
+                                },
+                                "angle": round(card_data["angle"], 2),
+                                "reversed": None,
+                                "corners": card_data["corners"]
+                            }]
+                            
+                            # Zapis metadanych JSON
+                            with open(output_dir / "detected_cards.json", "w", encoding="utf-8") as f:
+                                json.dump(cards_metadata, f, indent=2, ensure_ascii=False)
+                                
+                            # Narysowanie zielonego prostokąta
+                            box = np.intp(card_data["corners"])
+                            cv2.drawContours(display_warped, [box], -1, (0, 255, 0), 3)
+                            cv2.circle(display_warped, card_data["center"], 7, (0, 0, 255), -1)
+                            cv2.putText(display_warped, "card_001", (card_data["center"][0] - 25, card_data["center"][1] - 15),
+                                        cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+                                        
+                            # Zapisz obraz wynikowy
+                            cv2.imwrite(str(output_dir / "table_detected_diff.png"), display_warped)
+                            
+                            record_dir = diagnostics.record_attempt(
+                                previous=snapshot_previous,
+                                current=snapshot_current,
+                                mask=debug_mask,
+                                result_image=display_warped,
+                                metadata=cards_metadata,
+                                status="accepted",
+                            )
+                            
                             crop_img = crop_res["crop_image"]
                             # Zapis centralny z indeksem próby
                             cv2.imwrite(str(crops_dir / f"card_crop_{diagnostics.attempt_index:03d}.png"), crop_img)
                             # Zapis lokalny w katalogu diagnostyki
                             cv2.imwrite(str(record_dir / "crop.png"), crop_img)
                             print(f"-> Zapisano crop karty w: {record_dir / 'crop.png'}")
-
-                        print(f"-> Sukces! Zapisano obraz wynikowy w: {output_dir / 'table_detected_diff.png'}")
-                        print(f"-> Zapisano JSON w: {output_dir / 'detected_cards.json'}")
-                        
+                            
+                            # Ustawienie rozmiaru stołu w TableState przed dodaniem karty
+                            table_state.table["image_width"] = warped.shape[1]
+                            table_state.table["image_height"] = warped.shape[0]
+                            
+                            # Rozpoznawanie karty
+                            if use_indexed:
+                                match_res = matcher.match_card(crop_img, session_color_profile=profile)
+                            else:
+                                match_res = matcher.match_card(crop_img, references, deck_id)
+                                
+                            match_res = enrich_recognition_with_card_mapping(match_res, deck_id)
+                            
+                            best_ref_id = match_res.get("best_reference_id")
+                            mapping_status = match_res.get("mapping_status")
+                            confidence = match_res.get("confidence", 0.0)
+                            
+                            if mapping_status == "mapped":
+                                card_name = match_res["recognized_card"]["display_name"]
+                                print(f"-> [Matcher] Rozpoznano kartę: {card_name} ({best_ref_id}), confidence: {confidence:.4f}")
+                            elif mapping_status == "deck_back":
+                                print(f"-> [Matcher] Rozpoznano rewers: Gilded Back ({best_ref_id}), confidence: {confidence:.4f}")
+                            else:
+                                print(f"-> [Matcher] Karta nierozpoznana / brak mapowania (best_ref_id: {best_ref_id})")
+                                
+                            # Przygotowanie danych pozycji dla TableState przy użyciu cv2.boundingRect
+                            bx, by, bw, bh = cv2.boundingRect(np.intp(card_data["corners"]))
+                            position_data = {
+                                "bbox_px": [int(bx), int(by), int(bw), int(bh)],
+                                "center_px": [int(card_data["center"][0]), int(card_data["center"][1])],
+                                "corners_px": [[int(pt[0]), int(pt[1])] for pt in card_data["corners"]]
+                            }
+                            
+                            file_paths = {
+                                "crop_path": str(record_dir / "crop.png"),
+                                "metadata_path": str(record_dir / "metadata.json"),
+                                "mask_path": str(output_dir / "debug_diff_mask.png"),
+                                "result_path": str(output_dir / "table_detected_diff.png")
+                            }
+                            
+                            detection_id = f"detection_{diagnostics.attempt_index:03d}"
+                            added_card = table_state.add_card_from_recognition(
+                                detection_id=detection_id,
+                                recognition_result=match_res,
+                                position=position_data,
+                                files=file_paths
+                            )
+                            
+                            if added_card:
+                                table_state.save()
+                                if mapping_status == "mapped":
+                                    print(f"[TableState] Dodano {added_card.card_instance_id}: {added_card.recognized_card['display_name']} / {added_card.reference_id}, confidence={added_card.confidence:.4f}")
+                                elif mapping_status == "deck_back":
+                                    print(f"[TableState] Dodano {added_card.card_instance_id}: deck_back / {added_card.reference_id}")
+                                else:
+                                    print(f"[TableState] Dodano {added_card.card_instance_id}: unrecognized / {added_card.reference_id}")
+                                    
+                                # Dopiero po udanym cropie, rozpoznaniu, dodaniu do TableState i table_state.save()
+                                # akceptujemy aktualny stan stołu jako poprzedni
+                                snapshot_manager.accept_current_as_previous()
+                                print(f"-> Sukces! Zapisano obraz wynikowy w: {output_dir / 'table_detected_diff.png'}")
+                                print(f"-> Zapisano JSON w: {output_dir / 'detected_cards.json'}")
+                            else:
+                                print("-> Odrzucono: TableState odrzucił kartę (duplikat lub zbyt blisko innej). Pomijam rolling snapshot.")
+                            
+                        else:
+                            # Crop się nie powiódł
+                            diagnostics.record_attempt(
+                                previous=snapshot_previous,
+                                current=snapshot_current,
+                                mask=debug_mask,
+                                result_image=display_warped,
+                                metadata=[],
+                                status="crop_failed",
+                            )
+                            print("-> Błąd: Wycięcie cropa karty nie powiodło się (crop_failed).")
+                            
                     else:
                         diagnostics.record_attempt(
                             previous=snapshot_previous,

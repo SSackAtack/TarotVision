@@ -61,9 +61,10 @@ Procedury:
 *   **TV-013 (Session Color Calibration):** Wdrożono kalibrację różnic kolorystycznych kamera ↔ skaner za pomocą profilu LAB mean/std transfer z użyciem karty kalibracyjnej (np. `Gilded_38`).
 *   **TV-014 (Reference Deck Recognition Index):** Wdrożono indeks cech referencyjnych (NPZ + JSON) z ekstraktorami: gray_fingerprint, dhash, histogram jasności, histogram kolorów HSV i region_fingerprints.
 *   **TV-015 (Semantic Card Mapping & Deck Back):** Wdrożono mapowanie semantyczne (JSON) wraz z loaderem i walidatorem formatu, a także obsługę rewersu talii (`deck_back`) jako wpisu specjalnego. Zadanie zostało zakończone i ręcznie zweryfikowane dla talii Gilded. Plik `card_mapping.json` zawiera kompletne mapowanie 78 kart tarota oraz rewersu talii.
+*   **TV-016 (TableState):** Wdrożono zapis technicznego stanu stołu do pliku `output/sessions/current/table_state.json`. Każda zaakceptowana karta otrzymuje własny `card_instance_id`, pozycję na stole, wynik rozpoznania, dane semantyczne i powiązane pliki diagnostyczne.
 
 Najbliższy problem techniczny do wdrożenia to:
-*   **TV-016:** Wdrożenie TableState (zarządzanie rozkładem kart na stole) oraz integracja z systemem interpretacji rozkładu tarota za pomocą LLM.
+*   **TV-017:** Wdrożenie Spread Model / Layout (zarządzanie interpretacją geometrii rozkładu kart na stole).
 
 ---
 

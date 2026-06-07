@@ -41,10 +41,11 @@ class DeckProfile:
 
         profile = cls(data, profile_path)
         
-        # Jeśli geometria nie jest określona, spróbuj zainicjalizować ze skanów
+        # Jeśli geometria nie jest określona lub bazuje na fallbacku, spróbuj zainicjalizować ze skanów
         if (profile.aspect_ratio_height_to_width is None or 
                 profile.card_width_px is None or 
-                profile.card_height_px is None):
+                profile.card_height_px is None or
+                profile.geometry_source.startswith("fallback")):
             profile._initialize_geometry()
 
         return profile

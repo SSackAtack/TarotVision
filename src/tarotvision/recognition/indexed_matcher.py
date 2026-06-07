@@ -198,4 +198,5 @@ class IndexedImageMatcher:
             "session_color_profile_used": session_color_profile_used
         }
         
-        return result
+        from tarotvision.recognition.decision import apply_recognition_decision
+        return apply_recognition_decision(result)

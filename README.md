@@ -59,9 +59,10 @@ Procedury:
 *   **TV-011 (Rozpoznawanie kart):** Wdrożono image matching dopasowujący cropy z kamery 600x1032 do bazy referencyjnych skanów za pomocą normalizowanego grayscale i testowania rotacji (0° i 180°).
 *   **TV-012 (Camera Preflight & Quality Lock):** Wdrożono sprawdzanie parametrów obrazu przed sesją (autofokus, ekspozycja, balans bieli) oraz blokadę ustawień za pomocą profilu `camera_settings.json`.
 *   **TV-013 (Session Color Calibration):** Wdrożono kalibrację różnic kolorystycznych kamera ↔ skaner za pomocą profilu LAB mean/std transfer z użyciem karty kalibracyjnej (np. `Gilded_38`).
+*   **TV-014 (Reference Deck Recognition Index):** Wdrożono indeks cech referencyjnych (NPZ + JSON) z ekstraktorami: gray_fingerprint, dhash, histogram jasności, histogram kolorów HSV i region_fingerprints.
 
 Najbliższy problem techniczny do wdrożenia to:
-*   **TV-014:** Wdrożenie mapowania semantycznego (identyfikator skanu ↔ rzeczywista nazwa karty, np. `Gilded_00` → `The Fool`) w postaci bazy danych (np. JSON/SQLite), co pozwoli na wyświetlanie czytelnych nazw w nakładce (overlay) i logach sesji.
+*   **TV-015:** Wdrożenie mapowania semantycznego (identyfikator skanu ↔ rzeczywista nazwa karty, np. `Gilded_00` → `The Fool`) w postaci bazy danych (np. JSON/SQLite), co pozwoli na wyświetlanie czytelnych nazw w nakładce (overlay) i logach sesji.
 
 ---
 

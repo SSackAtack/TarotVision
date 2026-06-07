@@ -10,6 +10,8 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "src"))
 
 from tarotvision.recognition.reference_loader import ReferenceLoader
 from tarotvision.recognition.image_matcher import ImageMatcher
+from tarotvision.recognition.index_loader import ReferenceIndexLoader
+from tarotvision.recognition.indexed_matcher import IndexedImageMatcher
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
@@ -65,8 +67,19 @@ def run_card_recognition_test():
         except Exception as e:
             print(f"[OSTRZEŻENIE] Błąd podczas ładowania profilu kalibracji: {e}")
             
-    # 4. Dopasowanie kart i zbieranie wyników
-    matcher = ImageMatcher(session_color_profile=profile)
+    # 4. Inicjalizacja matchera (indeksowego lub tradycyjnego fallbacku)
+    index_loader = ReferenceIndexLoader()
+    index = index_loader.load_index(deck_id)
+    
+    if index:
+        print(f"[INFO] Używam szybkiego matchera indeksowego (IndexedImageMatcher) dla talii '{deck_id}'.")
+        matcher = IndexedImageMatcher(index)
+        use_indexed = True
+    else:
+        print(f"[OSTRZEŻENIE] Brak indeksu cech dla talii '{deck_id}'. Używam tradycyjnego matchera (ImageMatcher - fallback).")
+        matcher = ImageMatcher(session_color_profile=profile)
+        use_indexed = False
+        
     results = {}
     
     for name, path in crop_paths:
@@ -78,12 +91,22 @@ def run_card_recognition_test():
             continue
             
         # Dopasowanie
-        match_res = matcher.match_card(crop_img, references, deck_id)
+        if use_indexed:
+            match_res = matcher.match_card(crop_img, session_color_profile=profile)
+        else:
+            match_res = matcher.match_card(crop_img, references, deck_id)
         
         print(f"  Najlepsze dopasowanie: {match_res['best_reference_id']}")
         print(f"  Talia: {match_res['recognized_deck']}")
         print(f"  Pewność (Confidence): {match_res['confidence']:.4f}")
         print(f"  Wybrana rotacja: {match_res['best_rotation']}°")
+        
+        if use_indexed and "candidates" in match_res and len(match_res["candidates"]) > 0:
+            best_cand = match_res["candidates"][0]
+            if "score_breakdown" in best_cand:
+                print(f"  Diagnostyczny breakdown cech:")
+                for feat, val in best_cand["score_breakdown"].items():
+                    print(f"    - {feat}: {val:.4f}")
         
         results[name] = match_res
         

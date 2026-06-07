@@ -10,3 +10,5 @@ output/
 !requirements.txt
 !tests/assets/*.png
 !config/*.json
+!assets/decks/*/recognition_index/
+!assets/decks/*/recognition_index/*

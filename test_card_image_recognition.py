@@ -12,6 +12,7 @@ from tarotvision.recognition.reference_loader import ReferenceLoader
 from tarotvision.recognition.image_matcher import ImageMatcher
 from tarotvision.recognition.index_loader import ReferenceIndexLoader
 from tarotvision.recognition.indexed_matcher import IndexedImageMatcher
+from tarotvision.recognition.card_mapping import enrich_recognition_with_card_mapping
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
@@ -95,8 +96,20 @@ def run_card_recognition_test():
             match_res = matcher.match_card(crop_img, session_color_profile=profile)
         else:
             match_res = matcher.match_card(crop_img, references, deck_id)
+            
+        # Wzbogacenie o mapowanie semantyczne
+        match_res = enrich_recognition_with_card_mapping(match_res, deck_id)
         
         print(f"  Najlepsze dopasowanie: {match_res['best_reference_id']}")
+        print(f"  Mapping status: {match_res['mapping_status']}")
+        
+        if match_res['mapping_status'] == 'mapped':
+            print(f"  Karta: {match_res['recognized_card']['display_name']}")
+        elif match_res['mapping_status'] == 'deck_back':
+            print(f"  Specjalny typ: {match_res['recognized_special']['display_name']}")
+        else:
+            print("  Karta: brak mapowania")
+            
         print(f"  Talia: {match_res['recognized_deck']}")
         print(f"  Pewność (Confidence): {match_res['confidence']:.4f}")
         print(f"  Wybrana rotacja: {match_res['best_rotation']}°")

@@ -12,3 +12,4 @@ output/
 !config/*.json
 !assets/decks/*/recognition_index/
 !assets/decks/*/recognition_index/*
+!assets/decks/*/card_mapping.json

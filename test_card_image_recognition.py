@@ -54,8 +54,19 @@ def run_card_recognition_test():
         
     print(f"Znaleziono {len(crop_paths)} cropów do przetestowania.")
     
+    # Wczytanie opcjonalnego profilu kalibracji barwnej
+    profile_path = Path("output/sessions/current/session_color_profile.json")
+    profile = None
+    if profile_path.exists():
+        try:
+            with open(profile_path, "r", encoding="utf-8") as f:
+                profile = json.load(f)
+            print(f"[INFO] Załadowano profil kalibracji koloru sesji z: {profile_path}")
+        except Exception as e:
+            print(f"[OSTRZEŻENIE] Błąd podczas ładowania profilu kalibracji: {e}")
+            
     # 4. Dopasowanie kart i zbieranie wyników
-    matcher = ImageMatcher()
+    matcher = ImageMatcher(session_color_profile=profile)
     results = {}
     
     for name, path in crop_paths:

@@ -7,9 +7,10 @@ logger = logging.getLogger(__name__)
 class ImageMatcher:
     """Klasa implementująca algorytm dopasowania wizualnego kart (Visual Similarity)."""
     
-    def __init__(self, target_width: int = 600, target_height: int = 1032):
+    def __init__(self, target_width: int = 600, target_height: int = 1032, session_color_profile: dict = None):
         self.target_width = target_width
         self.target_height = target_height
+        self.session_color_profile = session_color_profile
 
     def _preprocess(self, img: np.ndarray) -> np.ndarray:
         """
@@ -57,6 +58,11 @@ class ImageMatcher:
                 "candidates": []
             }
 
+        # Opcjonalna korekcja koloru z profilu sesyjnego przed dopasowaniem
+        if self.session_color_profile:
+            from tarotvision.recognition.session_color_calibration import apply_color_profile
+            crop_image = apply_color_profile(crop_image, self.session_color_profile)
+
         # Preprocesowanie cropa wejściowego
         crop_norm = self._preprocess(crop_image)
         crop_norm_180 = cv2.rotate(crop_norm, cv2.ROTATE_180)
@@ -98,7 +104,7 @@ class ImageMatcher:
         
         result = {
             "recognized_deck": best["deck_id"],
-            "recognized_card": None,  # Zgodnie z zakresem TV-011
+            "recognized_card": None,
             "best_reference_id": best["reference_id"],
             "confidence": best["score"],
             "method": "visual_similarity_v1",

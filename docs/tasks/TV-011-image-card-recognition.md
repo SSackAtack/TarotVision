@@ -44,25 +44,32 @@ System jest w pełni gotowy na zasilenie modułu rozpoznawania tymi cropami.
 10. Wybór wyższego score i posortowanie kandydatów.
 
 ## 7. Wyniki Realizacji i Weryfikacji
-Skrypt testowy `test_card_image_recognition.py` został pomyślnie uruchomiony na 5 cropach z sesji diagnostycznych.
-Wyniki dopasowania ze skanem referencyjnym `Gilded_38.png` (jedyny fizyczny skan referencyjny w bazie):
+Przetestowano działanie na bazie pełnej talii wgranej przez użytkownika. 
+Wczytano **79 skanów referencyjnych** (w tym rewers) z katalogu `assets/decks/gilded/reference_scans/`.
 
-- **detection_001 (crop.png):**
-  - confidence: 0.6675
-  - best_rotation: 0°
-- **detection_002 (crop.png):**
-  - confidence: 0.7255
-  - best_rotation: 180° (karta obrócona w cropie względem skanu)
-- **detection_004 (crop.png):**
-  - confidence: 0.6571
-  - best_rotation: 0°
-- **detection_007 (crop.png):**
-  - confidence: 0.8436
-  - best_rotation: 180°
-- **detection_008 (crop.png):**
-  - confidence: 0.7173
-  - best_rotation: 0°
+Wyniki rozpoznawania:
+- **detection_001 (karta 1, Sesja 1):**
+  - najlepszy kandydat: `Gilded_73`
+  - confidence: `0.8676`
+  - best_rotation: `0°`
+- **detection_002 (karta 2, Sesja 1):**
+  - najlepszy kandydat: `Gilded_54`
+  - confidence: `0.8699`
+  - best_rotation: `0°`
+- **detection_004 (karta 3/4, Sesja 1):**
+  - najlepszy kandydat: `Gilded_31`
+  - confidence: `0.8288`
+  - best_rotation: `0°`
+- **detection_007 (karta 1, Sesja 2 - manualna):**
+  - najlepszy kandydat: `Gilded_38`
+  - confidence: `0.8436`
+  - best_rotation: `180°` (system prawidłowo obrócił cropa, by dopasować go do wzorca)
+- **detection_008 (karta 2, Sesja 2 - manualna):**
+  - najlepszy kandydat: `Gilded_54`
+  - confidence: `0.8550`
+  - best_rotation: `180°`
 
+Wskaźnik podobieństwa (confidence) wzrósł do wartości **~0.82 - 0.86** po wdrożeniu pełnej talii, co potwierdza wysoką skuteczność algorytmu w znajdowaniu właściwych szablonów.
 Zbiorcze wyniki zostały zapisane do pliku `output/processed/recognition/recognition_result.json`.
 
 ## 8. Kryteria akceptacji

@@ -320,8 +320,7 @@ def run_diff_detection():
                             print(f"-> Zapisano crop karty w: {record_dir / 'crop.png'}")
                             
                             # Ustawienie rozmiaru stołu w TableState przed dodaniem karty
-                            table_state.table["image_width"] = warped.shape[1]
-                            table_state.table["image_height"] = warped.shape[0]
+                            table_state.set_table_size(width=warped.shape[1], height=warped.shape[0])
                             
                             # Rozpoznawanie karty
                             if use_indexed:

@@ -276,17 +276,16 @@ def assess_empty_baseline(frame: Any) -> dict[str, Any]:
         "rect_candidate_count": candidate_count,
     }
     reasons = []
-    if largest_bright_ratio >= 0.025 or largest_rect_ratio >= 0.025:
+    try:
+        target_detection = TargetPreflightRunner._extract_target_roi(frame)
+    except Exception:
+        target_detection = None
+    if target_detection and target_detection.get("target_detected"):
+        reasons.append("calibration_target_present")
+        metrics["target_roi"] = target_detection.get("target_roi")
+        metrics["target_detection_method"] = target_detection.get("detection_method")
+    elif largest_bright_ratio >= 0.025 or largest_rect_ratio >= 0.025:
         reasons.append("large_rectangular_object")
-    if not reasons:
-        try:
-            target_detection = TargetPreflightRunner._extract_target_roi(frame)
-        except Exception:
-            target_detection = None
-        if target_detection and target_detection.get("target_detected"):
-            reasons.append("calibration_target_present")
-            metrics["target_roi"] = target_detection.get("target_roi")
-            metrics["target_detection_method"] = target_detection.get("detection_method")
 
     return {
         "is_valid": not reasons,
@@ -1031,7 +1030,13 @@ class ExistingVisionCapturePipeline:
         self._last_after_guard = None
         self._last_detected_roi_rect = None
         self._last_detected_frame_ids = None
-        empty_frame = self._wait_for_empty_table(manual_confirm, input_func, print_func)
+        baseline_rejection_dir = session_dir / "diagnostics" / case_id / f"attempt{attempt}" / "baseline_rejections"
+        empty_frame = self._wait_for_empty_table(
+            manual_confirm,
+            input_func,
+            print_func,
+            baseline_rejection_dir=baseline_rejection_dir,
+        )
         self._write_image(before_path, empty_frame)
         self.empty_reference = empty_frame
 
@@ -1085,8 +1090,10 @@ class ExistingVisionCapturePipeline:
         manual_confirm: bool,
         input_func: Callable[[str], str],
         print_func: Callable[..., None],
+        baseline_rejection_dir: Path | None = None,
     ):
         if manual_confirm:
+            rejection_index = 1
             while True:
                 input_func(
                     "KROK A: Usuń z obszaru stołu target A4 i wszystkie karty. "
@@ -1101,6 +1108,16 @@ class ExistingVisionCapturePipeline:
                 print_func("UWAGA: snapshot bazowy nie wygląda jak pusty stół:")
                 for reason in guard["reasons"]:
                     print_func(f"- {reason}")
+                if baseline_rejection_dir is not None:
+                    image_path, json_path = self._write_baseline_rejection(
+                        baseline_rejection_dir,
+                        rejection_index,
+                        frame,
+                        guard,
+                    )
+                    rejection_index += 1
+                    print_func(f"Diagnostyka odrzuconego baseline: {image_path}")
+                    print_func(f"Metryki guard baseline: {json_path}")
                 choice = input_func("Usuń obiekty i naciśnij Enter, aby powtórzyć KROK A, albo Q aby zakończyć: ")
                 if choice.strip().lower() == "q":
                     raise RuntimeError("baseline guard rejected non-empty table")
@@ -1115,6 +1132,25 @@ class ExistingVisionCapturePipeline:
                 return frame
             print_func("Wykryto obiekt na stole bazowym; czekam dalej na pusty stół...")
         raise TimeoutError("timeout oczekiwania na pusty stół")
+
+    def _write_baseline_rejection(
+        self,
+        diagnostics_dir: Path,
+        rejection_index: int,
+        frame,
+        guard: dict[str, Any],
+    ) -> tuple[Path, Path]:
+        diagnostics_dir.mkdir(parents=True, exist_ok=True)
+        image_path = diagnostics_dir / f"baseline_rejected_{rejection_index:03d}.png"
+        json_path = diagnostics_dir / f"baseline_rejected_{rejection_index:03d}.json"
+        self._write_image(image_path, frame)
+        payload = {
+            "image_path": str(image_path),
+            "guard": guard,
+        }
+        with open(json_path, "w", encoding="utf-8") as handle:
+            json.dump(payload, handle, indent=2, ensure_ascii=False)
+        return image_path, json_path
 
     def _wait_for_card_snapshot(
         self,

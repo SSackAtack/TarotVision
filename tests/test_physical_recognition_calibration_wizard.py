@@ -654,7 +654,12 @@ class PhysicalRecognitionCalibrationWizardTest(unittest.TestCase):
             for x in range(42, 78):
                 frame[y][x] = [230, 230, 230]
 
-        guard = assess_empty_baseline(frame)
+        with patch.object(
+            TargetPreflightRunner,
+            "_extract_target_roi",
+            return_value={"target_detected": False},
+        ):
+            guard = assess_empty_baseline(frame)
 
         self.assertFalse(guard["is_valid"])
         self.assertIn("large_rectangular_object", guard["reasons"])
@@ -676,6 +681,45 @@ class PhysicalRecognitionCalibrationWizardTest(unittest.TestCase):
         self.assertFalse(guard["is_valid"])
         self.assertIn("calibration_target_present", guard["reasons"])
         self.assertEqual([35, 18, 40, 58], guard["metrics"]["target_roi"])
+
+    def test_baseline_guard_prioritizes_detected_target_over_generic_rectangle(self):
+        frame = [[[70, 55, 40] for _ in range(120)] for _ in range(80)]
+        for y in range(12, 68):
+            for x in range(42, 78):
+                frame[y][x] = [230, 230, 230]
+
+        with patch.object(
+            TargetPreflightRunner,
+            "_extract_target_roi",
+            return_value={
+                "target_detected": True,
+                "target_roi": [42, 12, 36, 56],
+                "detection_method": "white_page_component",
+            },
+        ):
+            guard = assess_empty_baseline(frame)
+
+        self.assertFalse(guard["is_valid"])
+        self.assertEqual(["calibration_target_present"], guard["reasons"])
+
+    def test_rejected_baseline_writes_diagnostic_artifacts(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            pipeline = object.__new__(ExistingVisionCapturePipeline)
+            pipeline._write_image = lambda path, _image: Path(path).write_text("image", encoding="utf-8")
+            diagnostics_dir = Path(tmp_dir)
+            guard = {
+                "is_valid": False,
+                "reasons": ["large_rectangular_object"],
+                "metrics": {"largest_rect_candidate_ratio": 0.25},
+            }
+
+            image_path, json_path = pipeline._write_baseline_rejection(diagnostics_dir, 1, "frame", guard)
+
+            self.assertTrue(image_path.exists())
+            self.assertTrue(json_path.exists())
+            payload = json.loads(json_path.read_text(encoding="utf-8"))
+            self.assertEqual(["large_rectangular_object"], payload["guard"]["reasons"])
+            self.assertEqual(str(image_path), payload["image_path"])
 
     def test_baseline_guard_passes_neutral_empty_image(self):
         frame = [[[70, 55, 40] for _ in range(120)] for _ in range(80)]

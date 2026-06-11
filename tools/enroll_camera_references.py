@@ -24,6 +24,9 @@ from tools.physical_recognition_calibration_wizard import (
     build_session_dir
 )
 
+HARD_BLOCKING_REASONS = {"empty_or_uniform_crop", "low_content_density"}
+SOFT_WARNING_REASONS = {"blurred_crop", "low_edge_density"}
+
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger("enroll_camera_references")
 
@@ -221,7 +224,16 @@ def main():
                                 "quality": quality,
                                 "crop_source": crop_source
                             })
-                            logger.info(f"  Próbka {s+1}: Ostrość={quality['metrics'].get('blur_score')}, Valid={quality['is_valid']}")
+                            reasons = set(quality.get("reasons", []))
+                            hard_blocks = reasons & HARD_BLOCKING_REASONS
+                            soft_warnings = reasons & SOFT_WARNING_REASONS
+                            if hard_blocks:
+                                q_status = f"hard_invalid (blocks: {list(hard_blocks)})"
+                            elif soft_warnings:
+                                q_status = f"soft_warning (warnings: {list(soft_warnings)})"
+                            else:
+                                q_status = "valid"
+                            logger.info(f"  Próbka {s+1}: Ostrość={quality['metrics'].get('blur_score')}, Quality={q_status}")
                         else:
                             samples.append(None)
                     except Exception as e:
@@ -230,12 +242,27 @@ def main():
                     time.sleep(0.1)
                     
                 valid_samples = [s for s in samples if s is not None]
-                if not valid_samples:
-                    print("\n[BŁĄD] Nie udało się przechwycić żadnej poprawnej próbki. Spróbuj ponownie.")
-                    continue
+                # Filtrujemy twarde blokady
+                acceptable_samples = []
+                for s in valid_samples:
+                    reasons = set(s["quality"].get("reasons", []))
+                    if not (reasons & HARD_BLOCKING_REASONS):
+                        acceptable_samples.append(s)
+                        
+                if not acceptable_samples:
+                    print("\n[BŁĄD] Nie zapisano referencji: wszystkie próbki są twardo niepoprawne.")
+                    decision = input("Wciśnij Enter, aby spróbować ponownie przechwycić tę kartę, lub 'p' aby ją pominąć: ")
+                    if decision.strip().lower() == 'p':
+                        print(f"Pominięto kartę '{display_name}' ({ref_id}).")
+                        break
+                    else:
+                        continue
                     
                 # Wybór najlepszej próbki
-                best_sample = max(valid_samples, key=lambda s: (s["quality"]["is_valid"], s["quality"]["metrics"].get("blur_score", 0.0)))
+                best_sample = max(acceptable_samples, key=lambda s: (
+                    not bool(set(s["quality"].get("reasons", [])) & SOFT_WARNING_REASONS),
+                    s["quality"]["metrics"].get("blur_score", 0.0)
+                ))
                 
                 # Kontrola tożsamości
                 if matcher is not None:
@@ -261,22 +288,30 @@ def main():
                     if s is None:
                         continue
                     cv2.imwrite(str(case_diagnostics_dir / f"sample_{s_idx}.png"), s["crop_image"])
+                    reasons = set(s["quality"].get("reasons", []))
+                    soft_warnings = reasons & SOFT_WARNING_REASONS
                     with open(case_diagnostics_dir / f"sample_{s_idx}_quality.json", "w", encoding="utf-8") as f:
                         json.dump({
                             "sample_index": s_idx,
                             "is_best": (s is best_sample),
                             "quality": s["quality"],
-                            "crop_source": s["crop_source"]
+                            "crop_source": s["crop_source"],
+                            "accepted_with_warnings": bool(soft_warnings) if (s is best_sample) else False,
+                            "warning_reasons": list(soft_warnings) if (s is best_sample) else []
                         }, f, indent=2, ensure_ascii=False)
                 
                 # Zapis do manifestu
+                best_reasons = set(best_sample["quality"].get("reasons", []))
+                best_soft_warnings = best_reasons & SOFT_WARNING_REASONS
                 enrollment_results[ref_id] = {
                     "reference_id": ref_id,
                     "display_name": display_name,
                     "timestamp": datetime.now().isoformat(),
                     "best_sample_metrics": best_sample["quality"]["metrics"],
                     "best_sample_reasons": best_sample["quality"]["reasons"],
-                    "best_sample_is_valid": best_sample["quality"]["is_valid"],
+                    "best_sample_is_valid": len(best_reasons) == 0,
+                    "accepted_with_warnings": bool(best_soft_warnings),
+                    "warning_reasons": list(best_soft_warnings),
                     "crop_source": best_sample["crop_source"]
                 }
                 

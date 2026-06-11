@@ -40,7 +40,6 @@ if str(SRC_DIR) not in sys.path:
 BLOCKING_CROP_QUALITY_REASONS = {
     "empty_or_uniform_crop",
     "low_content_density",
-    "low_edge_density",
 }
 
 
@@ -1377,14 +1376,34 @@ class PhysicalRecognitionWizard:
                             "quality_is_valid": quality["is_valid"],
                             "quality_reasons": quality["reasons"],
                         }
+                        warning_reasons = sorted(set(quality.get("reasons", [])) & {"blurred_crop", "low_edge_density"})
+                        if decision == "accepted" and warning_reasons:
+                            event["accepted_with_warnings"] = True
+                            event["warning_reasons"] = warning_reasons
                         case_events.append(event)
 
                         if decision == "accepted":
-                            completed_cases.append({
+                            case_data = {
                                 "crop_path": final_crop_path,
                                 "expected_reference_id": planned_case["expected_reference_id"],
                                 "expected_rotation": planned_case["expected_rotation"],
-                            })
+                            }
+                            if warning_reasons:
+                                case_data["accepted_with_warnings"] = True
+                                case_data["warning_reasons"] = warning_reasons
+                                # Update diagnostic JSON of the attempt
+                                diag_file = session_dir / "diagnostics" / case_id / f"attempt{attempt}" / "crop_quality.json"
+                                if diag_file.exists():
+                                    try:
+                                        with open(diag_file, "r", encoding="utf-8") as handle:
+                                            diag_data = json.load(handle)
+                                        diag_data["accepted_with_warnings"] = True
+                                        diag_data["warning_reasons"] = warning_reasons
+                                        with open(diag_file, "w", encoding="utf-8") as handle:
+                                            json.dump(diag_data, handle, indent=2, ensure_ascii=False)
+                                    except Exception:
+                                        pass
+                            completed_cases.append(case_data)
                             self.print_func(f"Crop zaakceptowany: {final_crop_path}")
                             break
                         if decision == "retaken":
@@ -1562,11 +1581,15 @@ class PhysicalRecognitionWizard:
     def _resolve_crop_decision(self, crop_path: str, quality: dict[str, Any]) -> str:
         self.print_func(f"Crop zapisany: {crop_path}")
         blocking_reasons = sorted(set(quality.get("reasons", [])) & BLOCKING_CROP_QUALITY_REASONS)
+        warning_reasons = sorted(set(quality.get("reasons", [])) & {"blurred_crop", "low_edge_density"})
         if not quality["is_valid"]:
             self.print_func("UWAGA: crop wygląda podejrzanie:")
             for reason in quality["reasons"]:
                 self.print_func(f"- {reason}")
-            self.print_func("Sugerowana akcja: R — powtórz próbę")
+            if warning_reasons and not blocking_reasons:
+                self.print_func("Jeśli crop pokazuje całą czytelną kartę, możesz zaakceptować go przez A.")
+            else:
+                self.print_func("Sugerowana akcja: R — powtórz próbę")
         if blocking_reasons:
             self.print_func("Akceptacja A jest zablokowana dla cropa bez czytelnej karty:")
             for reason in blocking_reasons:

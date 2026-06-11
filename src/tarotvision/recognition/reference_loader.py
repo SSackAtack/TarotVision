@@ -11,13 +11,14 @@ class ReferenceLoader:
     def __init__(self, base_decks_dir: str = "assets/decks"):
         self.base_decks_dir = Path(base_decks_dir)
 
-    def load_references(self, deck_id: str) -> list:
+    def load_references(self, deck_id: str, source_subdir: str = "reference_scans") -> list:
         """
-        Wczytuje wszystkie obrazy referencyjne z katalogu reference_scans aktywnej talii.
+        Wczytuje wszystkie obrazy referencyjne z wybranego katalogu aktywnej talii.
         Ignoruje pliki pomocnicze (np. ukryte lub .gitkeep).
         
         Args:
             deck_id: Identyfikator talii (np. 'gilded').
+            source_subdir: Podkatalog, z którego mają być wczytane obrazy referencyjne.
             
         Returns:
             Lista słowników zawierających metadane i wczytany obraz referencyjny:
@@ -30,7 +31,7 @@ class ReferenceLoader:
                 }
             ]
         """
-        scans_dir = self.base_decks_dir / deck_id / "reference_scans"
+        scans_dir = self.base_decks_dir / deck_id / source_subdir
         if not scans_dir.exists():
             logger.warning(f"Katalog referencyjny {scans_dir} nie istnieje.")
             return []

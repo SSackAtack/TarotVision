@@ -14,10 +14,16 @@ class ReferenceIndexBuilder:
     """Klasa odpowiedzialna za budowanie indeksu cech talii kart referencyjnych."""
 
     def __init__(self, base_decks_dir: str = "assets/decks", 
-                 canonical_width: int = 600, canonical_height: int = 1032):
+                 canonical_width: int = 600, canonical_height: int = 1032,
+                 source_subdir: str = "reference_scans",
+                 output_subdir: str = "recognition_index",
+                 source_domain: str = "scan"):
         self.base_decks_dir = Path(base_decks_dir)
         self.canonical_width = canonical_width
         self.canonical_height = canonical_height
+        self.source_subdir = source_subdir
+        self.output_subdir = output_subdir
+        self.source_domain = source_domain
         
         # Konfiguracja ekstraktorów cech
         self.config_features = {
@@ -106,7 +112,7 @@ class ReferenceIndexBuilder:
         
         # 1. Wczytanie obrazów referencyjnych przez ReferenceLoader
         loader = ReferenceLoader(base_decks_dir=str(self.base_decks_dir))
-        references = loader.load_references(deck_id)
+        references = loader.load_references(deck_id, source_subdir=self.source_subdir)
         
         if not references:
             logger.error(f"Nie znaleziono skanów referencyjnych dla talii {deck_id}.")
@@ -133,8 +139,8 @@ class ReferenceIndexBuilder:
                 feats = self.extract_features(img)
                 
                 ref_ids.append(ref_id)
-                # Zapisujemy relatywną ścieżkę do skanu referencyjnego
-                rel_path = f"reference_scans/{ref_id}{Path(ref['path']).suffix}"
+                # Zapisujemy relatywną ścieżkę do obrazu referencyjnego
+                rel_path = f"{self.source_subdir}/{ref_id}{Path(ref['path']).suffix}"
                 source_paths.append(rel_path)
                 
                 gray_fingerprints.append(feats["gray_fingerprint"])
@@ -148,7 +154,7 @@ class ReferenceIndexBuilder:
                 return False
                 
         # 4. Tworzenie katalogu indeksu
-        index_dir = self.base_decks_dir / deck_id / "recognition_index"
+        index_dir = self.base_decks_dir / deck_id / self.output_subdir
         index_dir.mkdir(parents=True, exist_ok=True)
         
         # 5. Przygotowanie i zapis features.npz
@@ -176,7 +182,8 @@ class ReferenceIndexBuilder:
             "deck_id": deck_id,
             "created_at": datetime.now().isoformat(),
             "canonical_size": [self.canonical_width, self.canonical_height],
-            "source_scan_dir": f"assets/decks/{deck_id}/reference_scans",
+            "source_scan_dir": f"assets/decks/{deck_id}/{self.source_subdir}",
+            "source_domain": self.source_domain,
             "features_file": "features.npz",
             "feature_extractors": self.config_features,
             "references": [

@@ -1067,6 +1067,8 @@ class ExistingVisionCapturePipeline:
                 "diff_mask_path": str(diff_mask_path) if diff_mask_path else None,
                 "baseline_guard": getattr(self, "_last_baseline_guard", None),
                 "after_guard": getattr(self, "_last_after_guard", None),
+                "crop_source": getattr(self, "_last_crop_source", "legacy_scaled_frame"),
+                "fallback_reason": getattr(self, "_last_fallback_reason", None),
             },
         )
 
@@ -1079,9 +1081,11 @@ class ExistingVisionCapturePipeline:
                 raise RuntimeError("brak klatki z kamery")
             if fresh and index < read_count - 1:
                 time.sleep(0.03)
-        warped, _ = self.corrector.get_warped_table(frame, crop_to_markers=True)
+        warped, matrix = self.corrector.get_warped_table(frame, crop_to_markers=True)
         if warped is None:
             raise RuntimeError("brak ArUco / nie udało się wyprostować stołu")
+        self._last_raw_frame = frame
+        self._last_table_matrix = matrix
         return warped
 
     def _wait_for_empty_table(
@@ -1254,6 +1258,53 @@ class ExistingVisionCapturePipeline:
         card_data = self.refinery.refine_card(card_frame, roi_rect, diff_mask=diff_mask)
         if card_data is None:
             raise RuntimeError("nie udało się doprecyzować geometrii karty")
+        raw_frame = getattr(self, "_last_raw_frame", None)
+        table_matrix = getattr(self, "_last_table_matrix", None)
+        self._last_crop_source = "legacy_scaled_frame"
+        self._last_fallback_reason = None
+
+        if raw_frame is not None and table_matrix is not None:
+            try:
+                import cv2
+                import numpy as np
+
+                corners = card_data.get("corners")
+                if corners and len(corners) == 4:
+                    pts_table = np.array(corners, dtype=np.float32).reshape(-1, 1, 2)
+                    inv_matrix = np.linalg.inv(table_matrix)
+                    pts_raw = cv2.perspectiveTransform(pts_table, inv_matrix).reshape(-1, 2)
+
+                    h_raw, w_raw = raw_frame.shape[:2]
+                    in_bounds = True
+                    for pt in pts_raw:
+                        x_val, y_val = pt[0], pt[1]
+                        if x_val < -2 or x_val > w_raw + 2 or y_val < -2 or y_val > h_raw + 2:
+                            in_bounds = False
+                            break
+
+                    if in_bounds:
+                        src_pts = self.cropper.order_points(pts_raw)
+                        dst_pts = np.array([
+                            [0, 0],
+                            [599, 0],
+                            [599, 1031],
+                            [0, 1031]
+                        ], dtype=np.float32)
+
+                        M = cv2.getPerspectiveTransform(src_pts, dst_pts)
+                        crop_image = cv2.warpPerspective(raw_frame, M, (600, 1032))
+
+                        self._last_crop_source = "native_frame"
+                        return crop_image
+                    else:
+                        self._last_fallback_reason = "corners_out_of_bounds"
+                else:
+                    self._last_fallback_reason = "invalid_card_corners"
+            except Exception as e:
+                self._last_fallback_reason = f"exception_during_native_mapping: {e}"
+        else:
+            self._last_fallback_reason = "missing_raw_frame_or_matrix"
+
         crop_result = self.cropper.crop_card(card_frame, card_data)
         if not crop_result or not crop_result.get("success"):
             raise RuntimeError("nieudany crop karty")
@@ -1368,6 +1419,12 @@ class PhysicalRecognitionWizard:
                         self._write_attempt_diagnostics(session_dir, case_id, attempt, quality, result)
                         decision = self._resolve_crop_decision(result.crop_path, quality)
                         final_crop_path = self._finalize_attempt_crop(result.crop_path, decision)
+                        crop_source = "legacy_scaled_frame"
+                        fallback_reason = None
+                        if result.diagnostics:
+                            crop_source = result.diagnostics.get("crop_source", "legacy_scaled_frame")
+                            fallback_reason = result.diagnostics.get("fallback_reason")
+
                         event = {
                             "case_id": case_id,
                             "attempt": attempt,
@@ -1375,7 +1432,11 @@ class PhysicalRecognitionWizard:
                             "crop_path": final_crop_path,
                             "quality_is_valid": quality["is_valid"],
                             "quality_reasons": quality["reasons"],
+                            "crop_source": crop_source,
                         }
+                        if fallback_reason is not None:
+                            event["fallback_reason"] = fallback_reason
+
                         warning_reasons = sorted(set(quality.get("reasons", [])) & {"blurred_crop", "low_edge_density"})
                         if decision == "accepted" and warning_reasons:
                             event["accepted_with_warnings"] = True
@@ -1387,7 +1448,10 @@ class PhysicalRecognitionWizard:
                                 "crop_path": final_crop_path,
                                 "expected_reference_id": planned_case["expected_reference_id"],
                                 "expected_rotation": planned_case["expected_rotation"],
+                                "crop_source": crop_source,
                             }
+                            if fallback_reason is not None:
+                                case_data["fallback_reason"] = fallback_reason
                             if warning_reasons:
                                 case_data["accepted_with_warnings"] = True
                                 case_data["warning_reasons"] = warning_reasons
@@ -1544,6 +1608,19 @@ class PhysicalRecognitionWizard:
         diagnostics_dir.mkdir(parents=True, exist_ok=True)
         with open(diagnostics_dir / "crop_quality.json", "w", encoding="utf-8") as handle:
             json.dump(quality, handle, indent=2, ensure_ascii=False)
+
+        # Write crop_source metadata
+        crop_source = "legacy_scaled_frame"
+        fallback_reason = None
+        if result.diagnostics:
+            crop_source = result.diagnostics.get("crop_source", "legacy_scaled_frame")
+            fallback_reason = result.diagnostics.get("fallback_reason")
+
+        crop_source_data = {"crop_source": crop_source}
+        if fallback_reason is not None:
+            crop_source_data["fallback_reason"] = fallback_reason
+        with open(diagnostics_dir / "crop_source.json", "w", encoding="utf-8") as handle:
+            json.dump(crop_source_data, handle, indent=2, ensure_ascii=False)
 
         roi_debug = None
         if result.diagnostics:

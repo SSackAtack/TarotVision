@@ -933,6 +933,177 @@ class PhysicalRecognitionCalibrationWizardTest(unittest.TestCase):
                 self.assertTrue(diag_data["accepted_with_warnings"])
                 self.assertEqual(diag_data["warning_reasons"], ["blurred_crop", "low_edge_density"])
 
+    def test_crop_from_changed_frame_prefers_native_crop_when_available(self):
+        import numpy as np
+        import cv2
+
+        pipeline = object.__new__(ExistingVisionCapturePipeline)
+
+        class DummyCropper:
+            def order_points(self, pts):
+                return pts
+
+        pipeline.cropper = DummyCropper()
+
+        class DummyRefinery:
+            def refine_card(self, card_frame, roi_rect, diff_mask=None):
+                return {
+                    "corners": [[10, 20], [80, 20], [80, 140], [10, 140]]
+                }
+        pipeline.refinery = DummyRefinery()
+
+        pipeline._last_raw_frame = np.zeros((1080, 1920, 3), dtype=np.uint8)
+        cv2.rectangle(pipeline._last_raw_frame, (10, 20), (80, 140), (255, 255, 255), -1)
+        pipeline._last_table_matrix = np.eye(3, dtype=np.float32)
+
+        card_frame = object()
+        empty_frame = object()
+        pipeline._last_detected_frame_ids = (id(card_frame), id(empty_frame))
+        pipeline._last_detected_roi_rect = ((50, 80), (70, 120), 0.0)
+        pipeline._last_diff_mask = None
+        pipeline._last_roi_debug = None
+
+        crop = pipeline._crop_from_changed_frame(card_frame=card_frame, empty_frame=empty_frame)
+
+        self.assertEqual(pipeline._last_crop_source, "native_frame")
+        self.assertIsNone(pipeline._last_fallback_reason)
+        self.assertEqual(crop.shape, (1032, 600, 3))
+        self.assertTrue(crop.mean() > 0)
+
+    def test_crop_from_changed_frame_falls_back_when_corners_out_of_bounds(self):
+        import numpy as np
+
+        pipeline = object.__new__(ExistingVisionCapturePipeline)
+
+        class DummyCropper:
+            def crop_card(self, card_frame, card_data):
+                return {
+                    "success": True,
+                    "crop_image": np.ones((1032, 600, 3), dtype=np.uint8) * 128
+                }
+        pipeline.cropper = DummyCropper()
+
+        class DummyRefinery:
+            def refine_card(self, card_frame, roi_rect, diff_mask=None):
+                return {
+                    "corners": [[-10, 20], [80, 20], [80, 140], [10, 140]]
+                }
+        pipeline.refinery = DummyRefinery()
+
+        pipeline._last_raw_frame = np.zeros((1080, 1920, 3), dtype=np.uint8)
+        pipeline._last_table_matrix = np.eye(3, dtype=np.float32)
+
+        card_frame = object()
+        empty_frame = object()
+        pipeline._last_detected_frame_ids = (id(card_frame), id(empty_frame))
+        pipeline._last_detected_roi_rect = ((50, 80), (70, 120), 0.0)
+        pipeline._last_diff_mask = None
+        pipeline._last_roi_debug = None
+
+        crop = pipeline._crop_from_changed_frame(card_frame=card_frame, empty_frame=empty_frame)
+
+        self.assertEqual(pipeline._last_crop_source, "legacy_scaled_frame")
+        self.assertEqual(pipeline._last_fallback_reason, "corners_out_of_bounds")
+        self.assertEqual(crop.shape, (1032, 600, 3))
+        self.assertEqual(crop[0, 0, 0], 128)
+
+    def test_crop_from_changed_frame_falls_back_when_matrix_missing(self):
+        import numpy as np
+
+        pipeline = object.__new__(ExistingVisionCapturePipeline)
+
+        class DummyCropper:
+            def crop_card(self, card_frame, card_data):
+                return {
+                    "success": True,
+                    "crop_image": np.ones((1032, 600, 3), dtype=np.uint8) * 99
+                }
+        pipeline.cropper = DummyCropper()
+
+        class DummyRefinery:
+            def refine_card(self, card_frame, roi_rect, diff_mask=None):
+                return {
+                    "corners": [[10, 20], [80, 20], [80, 140], [10, 140]]
+                }
+        pipeline.refinery = DummyRefinery()
+
+        pipeline._last_raw_frame = np.zeros((1080, 1920, 3), dtype=np.uint8)
+        pipeline._last_table_matrix = None
+
+        card_frame = object()
+        empty_frame = object()
+        pipeline._last_detected_frame_ids = (id(card_frame), id(empty_frame))
+        pipeline._last_detected_roi_rect = ((50, 80), (70, 120), 0.0)
+        pipeline._last_diff_mask = None
+        pipeline._last_roi_debug = None
+
+        crop = pipeline._crop_from_changed_frame(card_frame=card_frame, empty_frame=empty_frame)
+
+        self.assertEqual(pipeline._last_crop_source, "legacy_scaled_frame")
+        self.assertEqual(pipeline._last_fallback_reason, "missing_raw_frame_or_matrix")
+        self.assertEqual(crop[0, 0, 0], 99)
+
+    def test_wizard_run_logs_crop_source_metadata_in_cases_and_diagnostics(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            plan_path = Path(tmp_dir) / "plan.json"
+            plan_path.write_text(
+                json.dumps([{"display_name": "Fool", "expected_reference_id": "RWS_00_Fool"}]),
+                encoding="utf-8",
+            )
+            session_dir = Path(tmp_dir) / "session"
+            (session_dir / "crops").mkdir(parents=True, exist_ok=True)
+            crop_file = session_dir / "crops" / "001_RWS_00_Fool_rot0_attempt1_pending.png"
+            crop_file.write_text("fake crop B", encoding="utf-8")
+
+            with patch("tools.physical_recognition_calibration_wizard.crop_quality_check") as mock_check:
+                mock_check.return_value = {
+                    "is_valid": True,
+                    "reasons": [],
+                    "metrics": {},
+                }
+
+                pipeline = FakeCapturePipeline([
+                    CalibrationCaptureResult(
+                        status="completed",
+                        crop_path=str(crop_file),
+                        snapshot_paths=[],
+                        diagnostics={
+                            "crop_source": "native_frame"
+                        }
+                    )
+                ])
+
+                wizard = PhysicalRecognitionWizard(
+                    index_path="index.json",
+                    plan_path=str(plan_path),
+                    output_dir=tmp_dir,
+                    rotations=[0],
+                    samples_per_pose=1,
+                    manual_confirm=True,
+                    pipeline=pipeline,
+                    benchmark_runner=FakeBenchmarkRunner(),
+                    session_dir_factory=lambda _output_dir: session_dir,
+                    input_func=lambda _prompt="": "a",
+                    print_func=lambda *_args, **_kwargs: None,
+                )
+
+                wizard.run()
+
+                # 1. benchmark_cases.json
+                cases_path = session_dir / "benchmark_cases.json"
+                self.assertTrue(cases_path.exists())
+                cases = json.loads(cases_path.read_text(encoding="utf-8"))
+                self.assertEqual(len(cases), 1)
+                self.assertEqual(cases[0]["crop_source"], "native_frame")
+                self.assertNotIn("fallback_reason", cases[0])
+
+                # 2. diagnostics crop_source.json
+                diag_file = session_dir / "diagnostics" / "001_RWS_00_Fool_rot0" / "attempt1" / "crop_source.json"
+                self.assertTrue(diag_file.exists())
+                diag_data = json.loads(diag_file.read_text(encoding="utf-8"))
+                self.assertEqual(diag_data["crop_source"], "native_frame")
+                self.assertNotIn("fallback_reason", diag_data)
+
     def test_manual_card_step_retries_when_snapshot_still_looks_empty(self):
         pipeline = object.__new__(ExistingVisionCapturePipeline)
         pipeline.diff_detector = FakeDiffDetector([

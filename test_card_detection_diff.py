@@ -410,7 +410,9 @@ def run_diff_detection():
                             
                             # Rozpoznawanie karty
                             if use_indexed:
-                                match_res = matcher.match_card(crop_img, session_color_profile=profile)
+                                is_camera_domain = index.get("manifest", {}).get("source_domain") == "camera"
+                                active_profile = None if is_camera_domain else profile
+                                match_res = matcher.match_card(crop_img, session_color_profile=active_profile)
                             else:
                                 match_res = matcher.match_card(crop_img, references, deck_id)
                                 

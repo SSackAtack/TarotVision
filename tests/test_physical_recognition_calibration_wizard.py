@@ -85,6 +85,21 @@ class FakeDiffDetector:
         return roi_rect, f"mask-{self.calls}", debug
 
 
+class FakeCamera:
+    def __init__(self, frames):
+        self.frames = list(frames)
+        self.calls = 0
+
+    def get_frame(self):
+        self.calls += 1
+        return True, self.frames.pop(0)
+
+
+class IdentityPerspectiveCorrector:
+    def get_warped_table(self, frame, crop_to_markers=True):
+        return frame, None
+
+
 class PhysicalRecognitionCalibrationWizardTest(unittest.TestCase):
     def _write_index_manifest(self, tmp_dir, reference_count=5):
         path = Path(tmp_dir) / "index_manifest.json"
@@ -644,6 +659,24 @@ class PhysicalRecognitionCalibrationWizardTest(unittest.TestCase):
         self.assertFalse(guard["is_valid"])
         self.assertIn("large_rectangular_object", guard["reasons"])
 
+    def test_baseline_guard_rejects_detected_calibration_target(self):
+        frame = [[[90, 70, 50] for _ in range(120)] for _ in range(80)]
+
+        with patch.object(
+            TargetPreflightRunner,
+            "_extract_target_roi",
+            return_value={
+                "target_detected": True,
+                "target_roi": [35, 18, 40, 58],
+                "detection_method": "white_page_component",
+            },
+        ):
+            guard = assess_empty_baseline(frame)
+
+        self.assertFalse(guard["is_valid"])
+        self.assertIn("calibration_target_present", guard["reasons"])
+        self.assertEqual([35, 18, 40, 58], guard["metrics"]["target_roi"])
+
     def test_baseline_guard_passes_neutral_empty_image(self):
         frame = [[[70, 55, 40] for _ in range(120)] for _ in range(80)]
 
@@ -699,7 +732,7 @@ class PhysicalRecognitionCalibrationWizardTest(unittest.TestCase):
         frames = iter(["empty-after-frame", "card-after-frame"])
         inputs = iter(["", "", ""])
         messages = []
-        pipeline._read_warped_frame = lambda: next(frames)
+        pipeline._read_warped_frame = lambda **_kwargs: next(frames)
 
         frame = pipeline._wait_for_card_snapshot(
             "baseline-frame",
@@ -715,6 +748,17 @@ class PhysicalRecognitionCalibrationWizardTest(unittest.TestCase):
             "snapshot z kartą nadal wygląda jak pusty stół",
             "\n".join(messages),
         )
+
+    def test_fresh_manual_snapshot_discards_buffered_camera_frames(self):
+        pipeline = object.__new__(ExistingVisionCapturePipeline)
+        pipeline.camera = FakeCamera(["stale-target-frame", "stale-empty-frame", "fresh-card-frame"])
+        pipeline.corrector = IdentityPerspectiveCorrector()
+        pipeline.fresh_frame_reads = 3
+
+        frame = pipeline._read_warped_frame(fresh=True)
+
+        self.assertEqual("fresh-card-frame", frame)
+        self.assertEqual(3, pipeline.camera.calls)
 
     def test_benchmark_runs_only_on_accepted_crops(self):
         with tempfile.TemporaryDirectory() as tmp_dir:

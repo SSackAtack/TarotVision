@@ -278,6 +278,15 @@ def assess_empty_baseline(frame: Any) -> dict[str, Any]:
     reasons = []
     if largest_bright_ratio >= 0.025 or largest_rect_ratio >= 0.025:
         reasons.append("large_rectangular_object")
+    if not reasons:
+        try:
+            target_detection = TargetPreflightRunner._extract_target_roi(frame)
+        except Exception:
+            target_detection = None
+        if target_detection and target_detection.get("target_detected"):
+            reasons.append("calibration_target_present")
+            metrics["target_roi"] = target_detection.get("target_roi")
+            metrics["target_detection_method"] = target_detection.get("detection_method")
 
     return {
         "is_valid": not reasons,
@@ -966,6 +975,7 @@ class ExistingVisionCapturePipeline:
         self.timeout_seconds = timeout_seconds
         self.camera = None
         self.empty_reference = None
+        self.fresh_frame_reads = 5
 
         from tarotvision.camera.motion import MotionDetector
         from tarotvision.vision.cropper import CardCropper
@@ -1056,10 +1066,15 @@ class ExistingVisionCapturePipeline:
             },
         )
 
-    def _read_warped_frame(self):
-        success, frame = self.camera.get_frame()
-        if not success or frame is None:
-            raise RuntimeError("brak klatki z kamery")
+    def _read_warped_frame(self, fresh: bool = False):
+        frame = None
+        read_count = max(1, int(getattr(self, "fresh_frame_reads", 5))) if fresh else 1
+        for index in range(read_count):
+            success, frame = self.camera.get_frame()
+            if not success or frame is None:
+                raise RuntimeError("brak klatki z kamery")
+            if fresh and index < read_count - 1:
+                time.sleep(0.03)
         warped, _ = self.corrector.get_warped_table(frame, crop_to_markers=True)
         if warped is None:
             raise RuntimeError("brak ArUco / nie udało się wyprostować stołu")
@@ -1078,7 +1093,7 @@ class ExistingVisionCapturePipeline:
                     "Zostaw pusty, stabilny stół i naciśnij Enter dopiero wtedy. "
                     "Teraz zostanie wykonany snapshot bazowy pustego stołu..."
                 )
-                frame = self._read_warped_frame()
+                frame = self._read_warped_frame(fresh=True)
                 guard = assess_empty_baseline(frame)
                 self._last_baseline_guard = guard
                 if guard["is_valid"]:
@@ -1117,7 +1132,7 @@ class ExistingVisionCapturePipeline:
                 "i naciśnij Enter dopiero, gdy karta leży stabilnie. "
                 "Teraz zostanie wykonany snapshot z kartą..."
             )
-            card_frame = self._read_warped_frame()
+            card_frame = self._read_warped_frame(fresh=True)
             guard = self._detect_card_change_guard(card_frame, empty_frame)
             if guard["is_valid"]:
                 return card_frame

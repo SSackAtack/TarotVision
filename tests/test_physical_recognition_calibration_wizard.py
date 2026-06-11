@@ -7,6 +7,7 @@ from unittest.mock import patch
 
 from tools.physical_recognition_calibration_wizard import (
     CalibrationCaptureResult,
+    ExistingVisionCapturePipeline,
     PhysicalRecognitionWizard,
     TargetPreflightRunner,
     assess_empty_baseline,
@@ -67,6 +68,21 @@ class FakeTargetPreflightRunner:
         preflight_dir.mkdir(parents=True, exist_ok=True)
         (preflight_dir / "target_preflight_report.json").write_text(json.dumps(report), encoding="utf-8")
         return report
+
+
+class FakeDiffDetector:
+    def __init__(self, roi_results):
+        self.roi_results = list(roi_results)
+        self.calls = 0
+
+    def detect_change_roi_with_debug(self, current_frame, reference_frame):
+        self.calls += 1
+        roi_rect = self.roi_results.pop(0)
+        debug = {
+            "accepted": roi_rect is not None,
+            "contours_count": 1 if roi_rect is not None else 0,
+        }
+        return roi_rect, f"mask-{self.calls}", debug
 
 
 class PhysicalRecognitionCalibrationWizardTest(unittest.TestCase):
@@ -673,6 +689,32 @@ class PhysicalRecognitionCalibrationWizardTest(unittest.TestCase):
             decision = wizard._resolve_crop_decision(str(Path(tmp_dir) / "crop.png"), quality)
 
             self.assertEqual("accepted", decision)
+
+    def test_manual_card_step_retries_when_snapshot_still_looks_empty(self):
+        pipeline = object.__new__(ExistingVisionCapturePipeline)
+        pipeline.diff_detector = FakeDiffDetector([
+            None,
+            ((10.0, 20.0), (100.0, 180.0), 0.0),
+        ])
+        frames = iter(["empty-after-frame", "card-after-frame"])
+        inputs = iter(["", "", ""])
+        messages = []
+        pipeline._read_warped_frame = lambda: next(frames)
+
+        frame = pipeline._wait_for_card_snapshot(
+            "baseline-frame",
+            manual_confirm=True,
+            input_func=lambda prompt="": next(inputs),
+            print_func=lambda *args, **kwargs: messages.append(" ".join(str(arg) for arg in args)),
+        )
+
+        self.assertEqual("card-after-frame", frame)
+        self.assertEqual(2, pipeline.diff_detector.calls)
+        self.assertTrue(pipeline._last_after_guard["is_valid"])
+        self.assertIn(
+            "snapshot z kartą nadal wygląda jak pusty stół",
+            "\n".join(messages),
+        )
 
     def test_benchmark_runs_only_on_accepted_crops(self):
         with tempfile.TemporaryDirectory() as tmp_dir:

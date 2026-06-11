@@ -37,6 +37,13 @@ if str(SRC_DIR) not in sys.path:
     sys.path.append(str(SRC_DIR))
 
 
+BLOCKING_CROP_QUALITY_REASONS = {
+    "empty_or_uniform_crop",
+    "low_content_density",
+    "low_edge_density",
+}
+
+
 @dataclass
 class CalibrationCaptureResult:
     status: str
@@ -183,6 +190,8 @@ def crop_quality_check(crop: Any) -> dict[str, Any]:
     reasons = []
     if width != 600 or height != 1032:
         reasons.append("unexpected_dimensions")
+    if brightness_std < 3.0 and edge_density < 0.005:
+        reasons.append("empty_or_uniform_crop")
     if brightness_std < 8.0 or content_density < 0.12:
         reasons.append("low_content_density")
     if blur_score < 20.0:
@@ -191,6 +200,84 @@ def crop_quality_check(crop: Any) -> dict[str, Any]:
         reasons.append("overexposed_crop")
     if edge_density < 0.015:
         reasons.append("low_edge_density")
+
+    return {
+        "is_valid": not reasons,
+        "reasons": reasons,
+        "metrics": metrics,
+    }
+
+
+def assess_empty_baseline(frame: Any) -> dict[str, Any]:
+    """Check whether the baseline snapshot looks like an empty table."""
+    if frame is None:
+        return {"is_valid": False, "reasons": ["missing_frame"], "metrics": {}}
+
+    width, height, _channels = _image_shape(frame)
+    values = _flatten_brightness(frame)
+    mean = sum(values) / len(values) if values else 0.0
+    std = _simple_std(values, mean)
+    total_pixels = max(1, width * height)
+    largest_rect_ratio = 0.0
+    largest_bright_ratio = 0.0
+    candidate_count = 0
+
+    try:
+        import cv2
+        import numpy as np
+
+        image = np.asarray(frame)
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY) if len(image.shape) == 3 else image
+
+        bright_mask = cv2.inRange(gray, 185, 255)
+        kernel = np.ones((5, 5), dtype=np.uint8)
+        bright_mask = cv2.morphologyEx(bright_mask, cv2.MORPH_CLOSE, kernel)
+        contours, _ = cv2.findContours(bright_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        for contour in contours:
+            area = float(cv2.contourArea(contour))
+            if area <= 0:
+                continue
+            x, y, w, h = cv2.boundingRect(contour)
+            rect_area = max(1, w * h)
+            fill_ratio = area / rect_area
+            area_ratio = area / total_pixels
+            aspect = max(w, h) / max(1, min(w, h))
+            if fill_ratio >= 0.70 and 1.05 <= aspect <= 2.80:
+                candidate_count += 1
+                largest_bright_ratio = max(largest_bright_ratio, area_ratio)
+
+        edges = cv2.Canny(gray, 40, 120)
+        edges = cv2.dilate(edges, kernel, iterations=1)
+        contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        for contour in contours:
+            area = float(cv2.contourArea(contour))
+            if area <= 0:
+                continue
+            x, y, w, h = cv2.boundingRect(contour)
+            rect_area = max(1, w * h)
+            area_ratio = rect_area / total_pixels
+            aspect = max(w, h) / max(1, min(w, h))
+            if 0.025 <= area_ratio <= 0.55 and 1.05 <= aspect <= 3.20:
+                candidate_count += 1
+                largest_rect_ratio = max(largest_rect_ratio, area_ratio)
+    except Exception:
+        high_delta = sum(1 for value in values if abs(value - mean) > 70)
+        largest_bright_ratio = high_delta / len(values) if values else 0.0
+        largest_rect_ratio = largest_bright_ratio
+        candidate_count = 1 if largest_bright_ratio > 0.06 else 0
+
+    metrics = {
+        "image_width": width,
+        "image_height": height,
+        "brightness_mean": round(float(mean), 4),
+        "brightness_std": round(float(std), 4),
+        "largest_bright_rect_ratio": round(float(largest_bright_ratio), 4),
+        "largest_rect_candidate_ratio": round(float(largest_rect_ratio), 4),
+        "rect_candidate_count": candidate_count,
+    }
+    reasons = []
+    if largest_bright_ratio >= 0.025 or largest_rect_ratio >= 0.025:
+        reasons.append("large_rectangular_object")
 
     return {
         "is_valid": not reasons,
@@ -930,6 +1017,8 @@ class ExistingVisionCapturePipeline:
             f"{case_id}_attempt{attempt}_pending.png"
         )
 
+        self._last_baseline_guard = None
+        self._last_after_guard = None
         empty_frame = self._wait_for_empty_table(manual_confirm, input_func, print_func)
         self._write_image(before_path, empty_frame)
         self.empty_reference = empty_frame
@@ -964,6 +1053,8 @@ class ExistingVisionCapturePipeline:
             diagnostics={
                 "roi_debug": getattr(self, "_last_roi_debug", None),
                 "diff_mask_path": str(diff_mask_path) if diff_mask_path else None,
+                "baseline_guard": getattr(self, "_last_baseline_guard", None),
+                "after_guard": getattr(self, "_last_after_guard", None),
             },
         )
 
@@ -983,15 +1074,34 @@ class ExistingVisionCapturePipeline:
         print_func: Callable[..., None],
     ):
         if manual_confirm:
-            input_func(
-                "KROK A: Usuń z obszaru stołu target A4 i wszystkie karty. "
-                "Zostaw pusty, stabilny stół i naciśnij Enter dopiero wtedy. "
-                "Teraz zostanie wykonany snapshot bazowy pustego stołu..."
-            )
-            return self._read_warped_frame()
+            while True:
+                input_func(
+                    "KROK A: Usuń z obszaru stołu target A4 i wszystkie karty. "
+                    "Zostaw pusty, stabilny stół i naciśnij Enter dopiero wtedy. "
+                    "Teraz zostanie wykonany snapshot bazowy pustego stołu..."
+                )
+                frame = self._read_warped_frame()
+                guard = assess_empty_baseline(frame)
+                self._last_baseline_guard = guard
+                if guard["is_valid"]:
+                    return frame
+                print_func("UWAGA: snapshot bazowy nie wygląda jak pusty stół:")
+                for reason in guard["reasons"]:
+                    print_func(f"- {reason}")
+                choice = input_func("Usuń obiekty i naciśnij Enter, aby powtórzyć KROK A, albo Q aby zakończyć: ")
+                if choice.strip().lower() == "q":
+                    raise RuntimeError("baseline guard rejected non-empty table")
 
         print_func("Czekam na pusty i stabilny stół...")
-        return self._wait_for_stable_frame()
+        start = time.monotonic()
+        while time.monotonic() - start < self.timeout_seconds:
+            frame = self._wait_for_stable_frame()
+            guard = assess_empty_baseline(frame)
+            self._last_baseline_guard = guard
+            if guard["is_valid"]:
+                return frame
+            print_func("Wykryto obiekt na stole bazowym; czekam dalej na pusty stół...")
+        raise TimeoutError("timeout oczekiwania na pusty stół")
 
     def _wait_for_changed_stable_frame(self, print_func: Callable[..., None]):
         print_func("Czekam na pojawienie się karty i stabilizację obrazu...")
@@ -1028,7 +1138,19 @@ class ExistingVisionCapturePipeline:
     def _crop_from_changed_frame(self, card_frame, empty_frame):
         roi_rect, diff_mask, _debug = self.diff_detector.detect_change_roi_with_debug(card_frame, empty_frame)
         if roi_rect is None:
+            self._last_after_guard = {
+                "is_valid": False,
+                "reasons": ["no_card_change_detected"],
+                "metrics": _debug or {},
+            }
             raise RuntimeError("detektor różnicowy nie wykrył ROI karty")
+        self._last_after_guard = {
+            "is_valid": True,
+            "reasons": [],
+            "metrics": {
+                "roi_rect": list(roi_rect) if isinstance(roi_rect, tuple) else roi_rect,
+            },
+        }
         self._last_roi_debug = _debug
         self._last_diff_mask = diff_mask
         card_data = self.refinery.refine_card(card_frame, roi_rect, diff_mask=diff_mask)
@@ -1326,27 +1448,50 @@ class PhysicalRecognitionWizard:
                     "reason": "not exposed by current wizard/core pipeline",
                 }, handle, indent=2, ensure_ascii=False)
 
+        for guard_name in ("baseline_guard", "after_guard"):
+            guard_payload = result.diagnostics.get(guard_name) if result.diagnostics else None
+            if guard_payload:
+                payload = {"available": True, guard_name: guard_payload}
+            else:
+                payload = {
+                    "available": False,
+                    "reason": "not exposed by current wizard/core pipeline",
+                }
+            with open(diagnostics_dir / f"{guard_name}.json", "w", encoding="utf-8") as handle:
+                json.dump(payload, handle, indent=2, ensure_ascii=False)
+
     def _resolve_crop_decision(self, crop_path: str, quality: dict[str, Any]) -> str:
         self.print_func(f"Crop zapisany: {crop_path}")
+        blocking_reasons = sorted(set(quality.get("reasons", [])) & BLOCKING_CROP_QUALITY_REASONS)
         if not quality["is_valid"]:
             self.print_func("UWAGA: crop wygląda podejrzanie:")
             for reason in quality["reasons"]:
                 self.print_func(f"- {reason}")
             self.print_func("Sugerowana akcja: R — powtórz próbę")
+        if blocking_reasons:
+            self.print_func("Akceptacja A jest zablokowana dla cropa bez czytelnej karty:")
+            for reason in blocking_reasons:
+                self.print_func(f"- {reason}")
 
         if self.auto_accept_quality_ok and quality["is_valid"]:
             return "accepted"
         if not self.manual_confirm:
-            return "accepted"
+            return "retaken" if blocking_reasons else "accepted"
 
         while True:
             self.print_func("Wybierz:")
-            self.print_func("[A] zaakceptuj crop")
+            if blocking_reasons:
+                self.print_func("[A] zaakceptuj crop — zablokowane dla tego cropa")
+            else:
+                self.print_func("[A] zaakceptuj crop")
             self.print_func("[R] powtórz próbę")
             self.print_func("[S] pomiń tę próbkę")
             self.print_func("[Q] zakończ test")
             choice = self.input_func("Decyzja: ").strip().lower()
             if choice in ("", "a"):
+                if blocking_reasons:
+                    self.print_func("Akceptacja A jest zablokowana; powtarzam próbę.")
+                    return "retaken"
                 return "accepted"
             if choice == "r":
                 return "retaken"

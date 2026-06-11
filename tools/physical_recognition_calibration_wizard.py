@@ -1019,16 +1019,14 @@ class ExistingVisionCapturePipeline:
 
         self._last_baseline_guard = None
         self._last_after_guard = None
+        self._last_detected_roi_rect = None
+        self._last_detected_frame_ids = None
         empty_frame = self._wait_for_empty_table(manual_confirm, input_func, print_func)
         self._write_image(before_path, empty_frame)
         self.empty_reference = empty_frame
 
         if manual_confirm:
-            input_func(
-                "KROK B: Połóż wskazaną kartę, ustaw wymagany obrót i naciśnij Enter "
-                "dopiero, gdy karta leży stabilnie. Teraz zostanie wykonany snapshot z kartą..."
-            )
-            card_frame = self._read_warped_frame()
+            card_frame = self._wait_for_card_snapshot(empty_frame, manual_confirm, input_func, print_func)
         else:
             card_frame = self._wait_for_changed_stable_frame(print_func)
         self._write_image(after_path, card_frame)
@@ -1103,6 +1101,57 @@ class ExistingVisionCapturePipeline:
             print_func("Wykryto obiekt na stole bazowym; czekam dalej na pusty stół...")
         raise TimeoutError("timeout oczekiwania na pusty stół")
 
+    def _wait_for_card_snapshot(
+        self,
+        empty_frame,
+        manual_confirm: bool,
+        input_func: Callable[[str], str],
+        print_func: Callable[..., None],
+    ):
+        if not manual_confirm:
+            return self._wait_for_changed_stable_frame(print_func)
+
+        while True:
+            input_func(
+                "KROK B: Połóż wskazaną kartę w obszarze markerów, ustaw wymagany obrót "
+                "i naciśnij Enter dopiero, gdy karta leży stabilnie. "
+                "Teraz zostanie wykonany snapshot z kartą..."
+            )
+            card_frame = self._read_warped_frame()
+            guard = self._detect_card_change_guard(card_frame, empty_frame)
+            if guard["is_valid"]:
+                return card_frame
+
+            print_func("UWAGA: snapshot z kartą nadal wygląda jak pusty stół albo karta jest poza obszarem markerów:")
+            for reason in guard["reasons"]:
+                print_func(f"- {reason}")
+            choice = input_func("Połóż kartę i naciśnij Enter, aby powtórzyć KROK B, albo Q aby zakończyć: ")
+            if choice.strip().lower() == "q":
+                raise RuntimeError("card snapshot guard rejected empty card frame")
+
+    def _detect_card_change_guard(self, card_frame, empty_frame) -> dict[str, Any]:
+        roi_rect, diff_mask, debug = self.diff_detector.detect_change_roi_with_debug(card_frame, empty_frame)
+        self._last_detected_roi_rect = roi_rect
+        self._last_detected_frame_ids = (id(card_frame), id(empty_frame))
+        self._last_roi_debug = debug
+        self._last_diff_mask = diff_mask
+        if roi_rect is None:
+            guard = {
+                "is_valid": False,
+                "reasons": ["no_card_change_detected"],
+                "metrics": debug or {},
+            }
+        else:
+            guard = {
+                "is_valid": True,
+                "reasons": [],
+                "metrics": {
+                    "roi_rect": list(roi_rect) if isinstance(roi_rect, tuple) else roi_rect,
+                },
+            }
+        self._last_after_guard = guard
+        return guard
+
     def _wait_for_changed_stable_frame(self, print_func: Callable[..., None]):
         print_func("Czekam na pojawienie się karty i stabilizację obrazu...")
         start = time.monotonic()
@@ -1136,7 +1185,15 @@ class ExistingVisionCapturePipeline:
         raise RuntimeError("brak klatek do stabilizacji")
 
     def _crop_from_changed_frame(self, card_frame, empty_frame):
-        roi_rect, diff_mask, _debug = self.diff_detector.detect_change_roi_with_debug(card_frame, empty_frame)
+        if getattr(self, "_last_detected_frame_ids", None) == (id(card_frame), id(empty_frame)):
+            roi_rect = getattr(self, "_last_detected_roi_rect", None)
+            diff_mask = getattr(self, "_last_diff_mask", None)
+            _debug = getattr(self, "_last_roi_debug", None)
+        else:
+            self._detect_card_change_guard(card_frame, empty_frame)
+            roi_rect = getattr(self, "_last_detected_roi_rect", None)
+            diff_mask = getattr(self, "_last_diff_mask", None)
+            _debug = getattr(self, "_last_roi_debug", None)
         if roi_rect is None:
             self._last_after_guard = {
                 "is_valid": False,
@@ -1144,15 +1201,6 @@ class ExistingVisionCapturePipeline:
                 "metrics": _debug or {},
             }
             raise RuntimeError("detektor różnicowy nie wykrył ROI karty")
-        self._last_after_guard = {
-            "is_valid": True,
-            "reasons": [],
-            "metrics": {
-                "roi_rect": list(roi_rect) if isinstance(roi_rect, tuple) else roi_rect,
-            },
-        }
-        self._last_roi_debug = _debug
-        self._last_diff_mask = diff_mask
         card_data = self.refinery.refine_card(card_frame, roi_rect, diff_mask=diff_mask)
         if card_data is None:
             raise RuntimeError("nie udało się doprecyzować geometrii karty")

@@ -1,6 +1,9 @@
 .venv/
 __pycache__/
 *.pyc
+# Python editable install artifacts
+*.egg-info/
+*.egg-info
 output/
 .idea/
 .vscode/

@@ -9,6 +9,7 @@ from tools.physical_recognition_calibration_wizard import (
     CalibrationCaptureResult,
     PhysicalRecognitionWizard,
     TargetPreflightRunner,
+    assess_empty_baseline,
     build_session_dir,
     crop_quality_check,
     expand_plan_cases,
@@ -604,6 +605,7 @@ class PhysicalRecognitionCalibrationWizardTest(unittest.TestCase):
         quality = crop_quality_check(uniform_crop)
 
         self.assertFalse(quality["is_valid"])
+        self.assertIn("empty_or_uniform_crop", quality["reasons"])
         self.assertIn("low_content_density", quality["reasons"])
 
     def test_crop_quality_check_returns_metrics_and_reasons(self):
@@ -614,6 +616,63 @@ class PhysicalRecognitionCalibrationWizardTest(unittest.TestCase):
         self.assertIn("metrics", quality)
         self.assertIn("reasons", quality)
         self.assertIn("brightness_mean", quality["metrics"])
+
+    def test_baseline_guard_rejects_large_rectangular_object(self):
+        frame = [[[70, 55, 40] for _ in range(120)] for _ in range(80)]
+        for y in range(12, 68):
+            for x in range(42, 78):
+                frame[y][x] = [230, 230, 230]
+
+        guard = assess_empty_baseline(frame)
+
+        self.assertFalse(guard["is_valid"])
+        self.assertIn("large_rectangular_object", guard["reasons"])
+
+    def test_baseline_guard_passes_neutral_empty_image(self):
+        frame = [[[70, 55, 40] for _ in range(120)] for _ in range(80)]
+
+        guard = assess_empty_baseline(frame)
+
+        self.assertTrue(guard["is_valid"])
+        self.assertEqual([], guard["reasons"])
+
+    def test_plain_accept_is_blocked_for_empty_or_low_content_crop(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            output = StringIO()
+            wizard = PhysicalRecognitionWizard(
+                index_path=str(Path(tmp_dir) / "index_manifest.json"),
+                plan_path=None,
+                output_dir=tmp_dir,
+                manual_confirm=True,
+                input_func=lambda prompt="": "a",
+                print_func=lambda *args, **kwargs: print(*args, **kwargs, file=output),
+            )
+            quality = {
+                "is_valid": False,
+                "reasons": ["low_content_density", "low_edge_density", "empty_or_uniform_crop"],
+                "metrics": {},
+            }
+
+            decision = wizard._resolve_crop_decision(str(Path(tmp_dir) / "crop.png"), quality)
+
+            self.assertEqual("retaken", decision)
+            self.assertIn("Akceptacja A jest zablokowana", output.getvalue())
+
+    def test_valid_crop_can_still_be_accepted(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            wizard = PhysicalRecognitionWizard(
+                index_path=str(Path(tmp_dir) / "index_manifest.json"),
+                plan_path=None,
+                output_dir=tmp_dir,
+                manual_confirm=True,
+                input_func=lambda prompt="": "a",
+                print_func=lambda *args, **kwargs: None,
+            )
+            quality = {"is_valid": True, "reasons": [], "metrics": {}}
+
+            decision = wizard._resolve_crop_decision(str(Path(tmp_dir) / "crop.png"), quality)
+
+            self.assertEqual("accepted", decision)
 
     def test_benchmark_runs_only_on_accepted_crops(self):
         with tempfile.TemporaryDirectory() as tmp_dir:

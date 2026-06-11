@@ -64,7 +64,7 @@ Procedury:
 *   **TV-016 (TableState):** Wdrożono zapis technicznego stanu stołu do pliku `output/sessions/current/table_state.json`. Każda zaakceptowana karta otrzymuje własny `card_instance_id`, pozycję na stole, wynik rozpoznania, dane semantyczne i powiązane pliki diagnostyczne.
 
 Status kolejnych kierunków:
-*   **TV-016E (Recognition Benchmark & Calibration Wizard):** narzędzia offline benchmarku rozpoznawania, kreator fizycznej kalibracji oraz generator targetu A4 — kod w PR #8 (`task/TV-016E-calibration-benchmark-tools`).
+*   **TV-016E (Recognition Benchmark & Calibration Wizard):** narzędzia offline benchmarku rozpoznawania, kreator fizycznej kalibracji oraz generator targetu A4 — kod zmergowany w PR #8.
 *   **TV-017 (Spread Model / Layout):** ⏸ **WSTRZYMANE** — interpretacja geometrii rozkładu zostanie podjęta po ustabilizowaniu skuteczności rozpoznawania.
 *   **TV-018 (Program poprawy skuteczności rozpoznawania):** ▶ **AKTYWNY KIERUNEK** — plan 7 zadań (TV-018A–G) poprawiających dokładność rozpoznawania kart: [docs/tasks/TV-018-recognition-accuracy-program.md](docs/tasks/TV-018-recognition-accuracy-program.md). **Prerequisite:** zmergowany do `master` kod TV-016E (benchmark/wizard) — bez tych narzędzi protokół pomiarowy TV-018 jest niewykonalny.
 

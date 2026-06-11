@@ -547,7 +547,7 @@ Decyzja TV-011 („Wyklucza się … klasyfikacja neuronowa") pozostaje w mocy d
 
 ## Załącznik A: Zweryfikowane fakty o kodzie (ściąga dla agenta wykonującego)
 
-Stan na 2026-06-11, gałąź `task/TV-016E-A-recognition-benchmark`:
+Stan na 2026-06-11, po merge PR #8 do `master`:
 
 **Tor główny** — `test_card_detection_diff.py`:
 - kamera: `CameraCapture(camera_index=None, width=1920, height=1080, enable_preflight=True)` (linia 82);

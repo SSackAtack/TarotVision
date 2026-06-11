@@ -767,6 +767,172 @@ class PhysicalRecognitionCalibrationWizardTest(unittest.TestCase):
 
             self.assertEqual("accepted", decision)
 
+    def test_crop_with_low_edge_density_can_be_accepted(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            output = StringIO()
+            wizard = PhysicalRecognitionWizard(
+                index_path=str(Path(tmp_dir) / "index_manifest.json"),
+                plan_path=None,
+                output_dir=tmp_dir,
+                manual_confirm=True,
+                input_func=lambda prompt="": "a",
+                print_func=lambda *args, **kwargs: print(*args, **kwargs, file=output),
+            )
+            quality = {
+                "is_valid": False,
+                "reasons": ["low_edge_density"],
+                "metrics": {},
+            }
+
+            decision = wizard._resolve_crop_decision(str(Path(tmp_dir) / "crop.png"), quality)
+
+            self.assertEqual("accepted", decision)
+            self.assertIn("Jeśli crop pokazuje całą czytelną kartę, możesz zaakceptować go przez A.", output.getvalue())
+
+    def test_crop_with_blurred_crop_can_be_accepted(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            output = StringIO()
+            wizard = PhysicalRecognitionWizard(
+                index_path=str(Path(tmp_dir) / "index_manifest.json"),
+                plan_path=None,
+                output_dir=tmp_dir,
+                manual_confirm=True,
+                input_func=lambda prompt="": "a",
+                print_func=lambda *args, **kwargs: print(*args, **kwargs, file=output),
+            )
+            quality = {
+                "is_valid": False,
+                "reasons": ["blurred_crop"],
+                "metrics": {},
+            }
+
+            decision = wizard._resolve_crop_decision(str(Path(tmp_dir) / "crop.png"), quality)
+
+            self.assertEqual("accepted", decision)
+            self.assertIn("Jeśli crop pokazuje całą czytelną kartę, możesz zaakceptować go przez A.", output.getvalue())
+
+    def test_crop_with_low_edge_density_and_blurred_crop_can_be_accepted(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            output = StringIO()
+            wizard = PhysicalRecognitionWizard(
+                index_path=str(Path(tmp_dir) / "index_manifest.json"),
+                plan_path=None,
+                output_dir=tmp_dir,
+                manual_confirm=True,
+                input_func=lambda prompt="": "a",
+                print_func=lambda *args, **kwargs: print(*args, **kwargs, file=output),
+            )
+            quality = {
+                "is_valid": False,
+                "reasons": ["low_edge_density", "blurred_crop"],
+                "metrics": {},
+            }
+
+            decision = wizard._resolve_crop_decision(str(Path(tmp_dir) / "crop.png"), quality)
+
+            self.assertEqual("accepted", decision)
+            self.assertIn("Jeśli crop pokazuje całą czytelną kartę, możesz zaakceptować go przez A.", output.getvalue())
+
+    def test_crop_with_empty_or_uniform_crop_still_blocks_accept(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            output = StringIO()
+            wizard = PhysicalRecognitionWizard(
+                index_path=str(Path(tmp_dir) / "index_manifest.json"),
+                plan_path=None,
+                output_dir=tmp_dir,
+                manual_confirm=True,
+                input_func=lambda prompt="": "a",
+                print_func=lambda *args, **kwargs: print(*args, **kwargs, file=output),
+            )
+            quality = {
+                "is_valid": False,
+                "reasons": ["empty_or_uniform_crop"],
+                "metrics": {},
+            }
+
+            decision = wizard._resolve_crop_decision(str(Path(tmp_dir) / "crop.png"), quality)
+
+            self.assertEqual("retaken", decision)
+            self.assertIn("Akceptacja A jest zablokowana", output.getvalue())
+
+    def test_crop_with_low_content_density_still_blocks_accept(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            output = StringIO()
+            wizard = PhysicalRecognitionWizard(
+                index_path=str(Path(tmp_dir) / "index_manifest.json"),
+                plan_path=None,
+                output_dir=tmp_dir,
+                manual_confirm=True,
+                input_func=lambda prompt="": "a",
+                print_func=lambda *args, **kwargs: print(*args, **kwargs, file=output),
+            )
+            quality = {
+                "is_valid": False,
+                "reasons": ["low_content_density"],
+                "metrics": {},
+            }
+
+            decision = wizard._resolve_crop_decision(str(Path(tmp_dir) / "crop.png"), quality)
+
+            self.assertEqual("retaken", decision)
+            self.assertIn("Akceptacja A jest zablokowana", output.getvalue())
+
+    def test_wizard_run_logs_accepted_with_warnings_in_cases_and_diagnostics(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            plan_path = Path(tmp_dir) / "plan.json"
+            plan_path.write_text(
+                json.dumps([{"display_name": "Fool", "expected_reference_id": "RWS_00_Fool"}]),
+                encoding="utf-8",
+            )
+            session_dir = Path(tmp_dir) / "session"
+            (session_dir / "crops").mkdir(parents=True, exist_ok=True)
+            crop_file = session_dir / "crops" / "001_RWS_00_Fool_rot0_attempt1_pending.png"
+            crop_file.write_text("fake crop", encoding="utf-8")
+
+            with patch("tools.physical_recognition_calibration_wizard.crop_quality_check") as mock_check:
+                mock_check.return_value = {
+                    "is_valid": False,
+                    "reasons": ["low_edge_density", "blurred_crop"],
+                    "metrics": {},
+                }
+
+                pipeline = FakeCapturePipeline([
+                    CalibrationCaptureResult(
+                        status="completed",
+                        crop_path=str(crop_file),
+                        snapshot_paths=[],
+                    )
+                ])
+
+                wizard = PhysicalRecognitionWizard(
+                    index_path="index.json",
+                    plan_path=str(plan_path),
+                    output_dir=tmp_dir,
+                    rotations=[0],
+                    samples_per_pose=1,
+                    manual_confirm=True,
+                    pipeline=pipeline,
+                    benchmark_runner=FakeBenchmarkRunner(),
+                    session_dir_factory=lambda _output_dir: session_dir,
+                    input_func=lambda _prompt="": "a",
+                    print_func=lambda *_args, **_kwargs: None,
+                )
+
+                wizard.run()
+
+                cases_path = session_dir / "benchmark_cases.json"
+                self.assertTrue(cases_path.exists())
+                cases = json.loads(cases_path.read_text(encoding="utf-8"))
+                self.assertEqual(len(cases), 1)
+                self.assertTrue(cases[0]["accepted_with_warnings"])
+                self.assertEqual(cases[0]["warning_reasons"], ["blurred_crop", "low_edge_density"])
+
+                diag_file = session_dir / "diagnostics" / "001_RWS_00_Fool_rot0" / "attempt1" / "crop_quality.json"
+                self.assertTrue(diag_file.exists())
+                diag_data = json.loads(diag_file.read_text(encoding="utf-8"))
+                self.assertTrue(diag_data["accepted_with_warnings"])
+                self.assertEqual(diag_data["warning_reasons"], ["blurred_crop", "low_edge_density"])
+
     def test_manual_card_step_retries_when_snapshot_still_looks_empty(self):
         pipeline = object.__new__(ExistingVisionCapturePipeline)
         pipeline.diff_detector = FakeDiffDetector([

@@ -935,7 +935,10 @@ class ExistingVisionCapturePipeline:
         self.empty_reference = empty_frame
 
         if manual_confirm:
-            input_func("Naciśnij Enter, gdy karta leży stabilnie na stole...")
+            input_func(
+                "KROK B: Połóż wskazaną kartę, ustaw wymagany obrót i naciśnij Enter "
+                "dopiero, gdy karta leży stabilnie. Teraz zostanie wykonany snapshot z kartą..."
+            )
             card_frame = self._read_warped_frame()
         else:
             card_frame = self._wait_for_changed_stable_frame(print_func)
@@ -980,7 +983,11 @@ class ExistingVisionCapturePipeline:
         print_func: Callable[..., None],
     ):
         if manual_confirm:
-            input_func("Usuń wszystkie karty ze stołu i naciśnij Enter...")
+            input_func(
+                "KROK A: Usuń z obszaru stołu target A4 i wszystkie karty. "
+                "Zostaw pusty, stabilny stół i naciśnij Enter dopiero wtedy. "
+                "Teraz zostanie wykonany snapshot bazowy pustego stołu..."
+            )
             return self._read_warped_frame()
 
         print_func("Czekam na pusty i stabilny stół...")
@@ -1410,16 +1417,18 @@ class PhysicalRecognitionWizard:
     def _print_case(self, case: dict[str, Any], total_cases: int) -> None:
         self.print_func("")
         self.print_func(f"Krok {case['sequence_number']}/{total_cases}")
-        self.print_func(f"Połóż kartę: {case['display_name']}")
+        self.print_func(f"Karta do testu: {case['display_name']}")
         self.print_func(f"Obrót: {case['expected_rotation']}°")
         self.print_func("")
-        self.print_func("Usuń wszystkie karty ze stołu.")
+        self.print_func("Sekwencja tej próbki:")
+        self.print_func("1. KROK A: usuń target A4 i wszystkie karty; zostaw pusty, stabilny stół.")
+        self.print_func("2. KROK B: dopiero potem połóż wskazaną kartę i ustaw wymagany obrót.")
         if case["expected_rotation"] == 180:
             self.print_func(
-                "Ułóż kartę odwróconą o 180°, góra karty skierowana w dół stołu."
+                "Ustawienie w kroku 2: karta odwrócona o 180°, góra karty skierowana w dół stołu."
             )
         else:
-            self.print_func("Ułóż kartę normalnie, góra karty skierowana do góry stołu.")
+            self.print_func("Ustawienie w kroku 2: karta normalnie, góra karty skierowana do góry stołu.")
 
     def _handle_case_error(self, exc: Exception) -> str:
         self.print_func(f"Błąd próbki: {exc}")
